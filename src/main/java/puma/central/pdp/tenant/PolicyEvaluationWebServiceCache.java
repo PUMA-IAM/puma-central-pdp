@@ -17,14 +17,14 @@
  *    Technical Contact: maarten.decat@cs.kuleuven.be
  *    Author: maarten.decat@cs.kuleuven.be
  ******************************************************************************/
-package puma.centralpdp.tenant;
+package puma.central.pdp.tenant;
 
 import java.net.URL;
 import java.util.HashMap;
 import java.util.logging.Logger;
 
-import mdc.xacml.provider.tenant.policyservice.PolicyEvaluationService;
-import mdc.xacml.provider.tenant.policyservice.PolicyEvaluationServiceService;
+import puma.central.pdp.tenant.policyservice.PolicyEvaluationService;
+import puma.central.pdp.tenant.policyservice.PolicyEvaluationServiceService;
 
 /**
  * Class used for caching web service connections/instances/ports.
@@ -35,20 +35,20 @@ import mdc.xacml.provider.tenant.policyservice.PolicyEvaluationServiceService;
  * @author maartend
  *
  */
-public class WebServiceCache {
+public class PolicyEvaluationWebServiceCache {
 	
-	private static final Logger logger = Logger.getLogger(WebServiceCache.class.getName());
+	private static final Logger logger = Logger.getLogger(PolicyEvaluationWebServiceCache.class.getName());
 	
-	private static WebServiceCache instance;
+	private static PolicyEvaluationWebServiceCache instance;
 	
-	public static WebServiceCache getInstance() {
+	public static PolicyEvaluationWebServiceCache getInstance() {
 		if(instance == null) {
-			instance = new WebServiceCache();
+			instance = new PolicyEvaluationWebServiceCache();
 		}
 		return instance;
 	}
 	
-	private WebServiceCache() {
+	private PolicyEvaluationWebServiceCache() {
 		
 	}
 	

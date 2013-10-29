@@ -17,21 +17,22 @@
  *    Technical Contact: maarten.decat@cs.kuleuven.be
  *    Author: maarten.decat@cs.kuleuven.be
  ******************************************************************************/
-package puma.centralpdp.tenant;
+package puma.central.pdp.tenant;
 
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
 
-import mdc.xacml.provider.projectconfig.ProjectConfig;
-import mdc.xacml.provider.tenant.attrservice.AttributeNotFoundException_Exception;
-import mdc.xacml.provider.tenant.attrservice.AttributeProvider;
-import mdc.xacml.provider.tenant.attrservice.AttributeProviderService;
-import mdc.xacml.provider.tenant.attrservice.ErrorWhileProcessingException_Exception;
+import puma.central.pdp.tenant.attrservice.AttributeNotFoundException_Exception;
+import puma.central.pdp.tenant.attrservice.AttributeProvider;
+import puma.central.pdp.tenant.attrservice.AttributeProviderService;
+import puma.central.pdp.tenant.attrservice.ErrorWhileProcessingException_Exception;
 
 import com.sun.xacml.EvaluationCtx;
 import com.sun.xacml.SimpleAttributeValue;
@@ -41,7 +42,6 @@ import com.sun.xacml.attr.StringAttribute;
 import com.sun.xacml.cond.EvaluationResult;
 import com.sun.xacml.ctx.Status;
 import com.sun.xacml.finder.AttributeFinderModule;
-import com.yammer.metrics.core.TimerContext;
 
 /**
  * An attribute finder module that contacts the tenant using the SAML web
@@ -57,6 +57,16 @@ public class TenantAtributeFinderModule extends AttributeFinderModule {
 	 */
 	private static final Logger logger = Logger
 			.getLogger(TenantAtributeFinderModule.class.getName());
+
+	private static URL TENANT_ATTRIBUTE_PROVIDER_WSDL = null;
+	static {
+		try {
+			TENANT_ATTRIBUTE_PROVIDER_WSDL = new URL("http://localhost:9001/attribute-service?WSDL");
+		} catch(MalformedURLException e) {
+			// should not happen
+			e.printStackTrace();
+		}
+	}
 
 	/**
 	 * The proxy to the tenant's SAML SOAP web service.
@@ -100,8 +110,7 @@ public class TenantAtributeFinderModule extends AttributeFinderModule {
 
 	private void setUpTenant() {
 		if (tenantAS == null) {
-			AttributeProviderService service = new AttributeProviderService(
-					ProjectConfig.getActive().getTenantAttributeServiceWSDL());
+			AttributeProviderService service = new AttributeProviderService(TENANT_ATTRIBUTE_PROVIDER_WSDL);
 			this.tenantAS = service.getAttributeProviderPort();
 		}
 	}
@@ -192,16 +201,12 @@ public class TenantAtributeFinderModule extends AttributeFinderModule {
 		// make sure the tenant web service has been initialized
 		setUpTenant();
 
-		TimerContext methodTimer = ProjectConfig.getActive().getTimer(
-				this.getClass(), "findAttribute");
-
 		// We're OK to go, so start with fetching the
 		// subject id (a lot of cruft...)
 		EvaluationResult subjectIdResult = context.getSubjectAttribute(
 				StringAttribute.identifierURI, subjectIdIdentifier, issuer,
 				subjectCategory);
 		if (subjectIdResult.indeterminate()) {
-			methodTimer.stop();
 			return subjectIdResult;
 		}
 		// check that we succeeded in getting the subject identifier
@@ -211,13 +216,11 @@ public class TenantAtributeFinderModule extends AttributeFinderModule {
 			List<String> code = new ArrayList<String>();
 			code.add(Status.STATUS_MISSING_ATTRIBUTE);
 			Status status = new Status(code, "missing subject-id");
-			methodTimer.stop();
 			return new EvaluationResult(status);
 		} else if (subjectIdBag.size() > 1) {
 			List<String> code = new ArrayList<String>();
 			code.add(Status.STATUS_PROCESSING_ERROR);
 			Status status = new Status(code, "multiple subject ids");
-			methodTimer.stop();
 			return new EvaluationResult(status);
 		}
 		// now get the last (and only) element in the bag
@@ -232,7 +235,6 @@ public class TenantAtributeFinderModule extends AttributeFinderModule {
 		EvaluationResult resourceIdResult = context.getResourceAttribute(
 				StringAttribute.identifierURI, resourceIdIdentifier, issuer);
 		if (resourceIdResult.indeterminate()) {
-			methodTimer.stop();
 			return resourceIdResult;
 		}
 		// check that we succeeded in getting the resource identifier
@@ -242,13 +244,11 @@ public class TenantAtributeFinderModule extends AttributeFinderModule {
 			List<String> code = new ArrayList<String>();
 			code.add(Status.STATUS_MISSING_ATTRIBUTE);
 			Status status = new Status(code, "missing resource-id");
-			methodTimer.stop();
 			return new EvaluationResult(status);
 		} else if (resourceIdBag.size() > 1) {
 			List<String> code = new ArrayList<String>();
 			code.add(Status.STATUS_PROCESSING_ERROR);
 			Status status = new Status(code, "multiple resource ids");
-			methodTimer.stop();
 			return new EvaluationResult(status);
 		}
 		// now get the last (and only) element in the bag
@@ -268,11 +268,9 @@ public class TenantAtributeFinderModule extends AttributeFinderModule {
 			entityId = resourceId;
 		}
 
-		TimerContext timer = ProjectConfig.getActive().getTimer(
-				this.getClass(), "tenant-fetch-attribute");
 		BagAttribute bag;
 		try {
-			List<mdc.xacml.provider.tenant.attrservice.SimpleAttributeValue> response = tenantAS
+			List<puma.central.pdp.tenant.attrservice.SimpleAttributeValue> response = tenantAS
 					.fetchAttribute(entityId, attributeId.toString());
 			bag = BagAttribute
 					.fromEncodedSet(convertSimpleAttributeValues(response));
@@ -284,30 +282,26 @@ public class TenantAtributeFinderModule extends AttributeFinderModule {
 			code.add(Status.STATUS_PROCESSING_ERROR);
 			Status status = new Status(code,
 					"error while processing tenant attribute fetch");
-			methodTimer.stop();
 			return new EvaluationResult(status);
 		} catch (AttributeNotFoundException_Exception e) {
 			e.printStackTrace();
 			return emptyBagResult(attributeType);
 		}
-		timer.stop();
-
-		methodTimer.stop();
 
 		return new EvaluationResult(bag);
 	}
 
 	private List<SimpleAttributeValue> convertSimpleAttributeValues(
-			List<mdc.xacml.provider.tenant.attrservice.SimpleAttributeValue> values) {
+			List<puma.central.pdp.tenant.attrservice.SimpleAttributeValue> values) {
 		List<SimpleAttributeValue> list = new ArrayList<SimpleAttributeValue>();
-		for (mdc.xacml.provider.tenant.attrservice.SimpleAttributeValue value : values) {
+		for (puma.central.pdp.tenant.attrservice.SimpleAttributeValue value : values) {
 			list.add(convertSimpleAttributeValue(value));
 		}
 		return list;
 	}
 
 	private SimpleAttributeValue convertSimpleAttributeValue(
-			mdc.xacml.provider.tenant.attrservice.SimpleAttributeValue value) {
+			puma.central.pdp.tenant.attrservice.SimpleAttributeValue value) {
 		return new SimpleAttributeValue(value.getType(), value.getValue());
 	}
 }

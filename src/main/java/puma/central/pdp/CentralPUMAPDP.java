@@ -1,4 +1,4 @@
-package puma.centralpdp;
+package puma.central.pdp;
 
 import java.io.File;
 import java.io.FileInputStream;

@@ -17,12 +17,13 @@
  *    Technical Contact: maarten.decat@cs.kuleuven.be
  *    Author: maarten.decat@cs.kuleuven.be
  ******************************************************************************/
-package puma.centralpdp.tenant;
+package puma.central.pdp.tenant;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
@@ -38,9 +39,10 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-import mdc.xacml.timing.TimerContext;
-
 import org.w3c.dom.Node;
+
+import puma.central.pdp.tenant.policyservice.ErrorWhileProcessingException_Exception;
+import puma.central.pdp.tenant.policyservice.PolicyEvaluationService;
 
 import com.sun.xacml.EvaluationCtx;
 import com.sun.xacml.PDP;
@@ -52,6 +54,15 @@ import com.sun.xacml.ctx.Result;
 import com.sun.xacml.remote.RemotePolicyEvaluatorModule;
 
 public class TenantPolicyEvaluatorModule extends RemotePolicyEvaluatorModule {
+	
+	public static URL TENANT_POLICY_EVALUATOR_WSDL = null;
+	static {
+		try {
+			TENANT_POLICY_EVALUATOR_WSDL = new URL("http://localhost:9003/authorization-service?WSDL");
+		} catch (MalformedURLException e) {
+			// will not happen with this code
+		}
+	}
 
 	/**
 	 * Our logger
@@ -113,7 +124,7 @@ public class TenantPolicyEvaluatorModule extends RemotePolicyEvaluatorModule {
 	 */
 	public boolean supportsId(String id) {
 		if (this.supportedPolicyIds == null) {
-			PolicyEvaluationService port = WebServiceCache.getInstance()
+			PolicyEvaluationService port = PolicyEvaluationWebServiceCache.getInstance()
 					.getPort(getEndpointURL("not-implemented"));
 			this.supportedPolicyIds = port.getSupportedPolicyIds();
 			// log the supported ids
@@ -150,21 +161,16 @@ public class TenantPolicyEvaluatorModule extends RemotePolicyEvaluatorModule {
 			return new Result(Result.DECISION_NOT_APPLICABLE);
 		}
 
-		TimerContext methodTimer = ProjectConfig.getActive().getTimer(
-				getClass(), "findAndEvaluate");
-
 		// the actual implementation
 		// 1. get the end point URL for this PolicyId
 		URL endpointURL = getEndpointURL("not-implemented");
 		// 2. build the service stub
-		PolicyEvaluationService port = WebServiceCache.getInstance().getPort(
+		PolicyEvaluationService port = PolicyEvaluationWebServiceCache.getInstance().getPort(
 				endpointURL);
 		// 3. build the request
 		String xacmlRequest = nodeToString(context.getRequestRoot());
 		// 4. ask for a response
 		String responseAsString;
-		TimerContext tenantCallTimer = ProjectConfig.getActive().getTimer(
-				getClass(), "tenant-policy-evaluation-service");
 		List<EncodedCachedAttribute> encodedCachedAttributes = context
 				.getEncodedCachedAttributes();
 		try {
@@ -173,12 +179,9 @@ public class TenantPolicyEvaluatorModule extends RemotePolicyEvaluatorModule {
 			logger.info("FLOW: evaluated #" + id.toString() + " at tenant");
 		} catch (ErrorWhileProcessingException_Exception e) {
 			// MessageNotSupportedException or ErrorWhileProcessingException
-			methodTimer.stop();
 			logger.log(Level.WARNING,
 					"Error when asking for tenant's authoriziation decision", e);
 			return new Result(Result.DECISION_INDETERMINATE);
-		} finally {
-			tenantCallTimer.stop();
 		}
 		logger.fine("Tenant's authorization decision: " + responseAsString);
 
@@ -187,7 +190,6 @@ public class TenantPolicyEvaluatorModule extends RemotePolicyEvaluatorModule {
 		try {
 			is = new ByteArrayInputStream(responseAsString.getBytes("UTF-8"));
 		} catch (UnsupportedEncodingException e) {
-			methodTimer.stop();
 			logger.log(Level.WARNING, "Error when encoding response string", e);
 			return new Result(Result.DECISION_INDETERMINATE);
 		}
@@ -195,13 +197,11 @@ public class TenantPolicyEvaluatorModule extends RemotePolicyEvaluatorModule {
 		try {
 			responseCtx = ResponseCtx.getInstance(is);
 		} catch (ParsingException e) {
-			methodTimer.stop();
 			logger.log(Level.WARNING, "Error when parsing tenant response", e);
 			return new Result(Result.DECISION_INDETERMINATE);
 		}
 		Set<Result> results = (Set<Result>) responseCtx.getResults();
 		if (results.size() != 1) {
-			methodTimer.stop();
 			logger.warning("incorrect number of results retrieved from tenant: "
 					+ results.size());
 			return new Result(Result.DECISION_INDETERMINATE);
@@ -224,7 +224,7 @@ public class TenantPolicyEvaluatorModule extends RemotePolicyEvaluatorModule {
 	 */
 	private URL getEndpointURL(String tenantId) {
 		// for now: just a single endpoint
-		return ProjectConfig.getActive().getTenantPolicyEvaluationServiceWSDL();
+		return TENANT_POLICY_EVALUATOR_WSDL;
 	}
 
 	/**
@@ -248,11 +248,11 @@ public class TenantPolicyEvaluatorModule extends RemotePolicyEvaluatorModule {
 	/**
 	 * Converts classed for the web service.
 	 */
-	private List<mdc.xacml.provider.tenant.policyservice.EncodedCachedAttribute> convert(
+	private List<puma.central.pdp.tenant.policyservice.EncodedCachedAttribute> convert(
 			List<EncodedCachedAttribute> encodedCachedAttributes) {
-		List<mdc.xacml.provider.tenant.policyservice.EncodedCachedAttribute> result = new ArrayList<mdc.xacml.provider.tenant.policyservice.EncodedCachedAttribute>();
+		List<puma.central.pdp.tenant.policyservice.EncodedCachedAttribute> result = new ArrayList<puma.central.pdp.tenant.policyservice.EncodedCachedAttribute>();
 		for (EncodedCachedAttribute eca : encodedCachedAttributes) {
-			mdc.xacml.provider.tenant.policyservice.EncodedCachedAttribute newEca = new mdc.xacml.provider.tenant.policyservice.EncodedCachedAttribute();
+			puma.central.pdp.tenant.policyservice.EncodedCachedAttribute newEca = new puma.central.pdp.tenant.policyservice.EncodedCachedAttribute();
 			newEca.setId(eca.getId());
 			newEca.setType(eca.getType());
 			newEca.getEncodedBagAttribute()
@@ -262,18 +262,18 @@ public class TenantPolicyEvaluatorModule extends RemotePolicyEvaluatorModule {
 		return result;
 	}
 	
-	private List<mdc.xacml.provider.tenant.policyservice.SimpleAttributeValue> convertSimpleAttributeValueList(
+	private List<puma.central.pdp.tenant.policyservice.SimpleAttributeValue> convertSimpleAttributeValueList(
 			List<SimpleAttributeValue> values) {
-		List<mdc.xacml.provider.tenant.policyservice.SimpleAttributeValue> result = new ArrayList<mdc.xacml.provider.tenant.policyservice.SimpleAttributeValue>();
+		List<puma.central.pdp.tenant.policyservice.SimpleAttributeValue> result = new ArrayList<puma.central.pdp.tenant.policyservice.SimpleAttributeValue>();
 		for(SimpleAttributeValue value: values) {
 			result.add(convert(value));
 		}
 		return result;
 	}
 
-	private mdc.xacml.provider.tenant.policyservice.SimpleAttributeValue convert(
+	private puma.central.pdp.tenant.policyservice.SimpleAttributeValue convert(
 			SimpleAttributeValue value) {
-		mdc.xacml.provider.tenant.policyservice.SimpleAttributeValue result = new mdc.xacml.provider.tenant.policyservice.SimpleAttributeValue();
+		puma.central.pdp.tenant.policyservice.SimpleAttributeValue result = new puma.central.pdp.tenant.policyservice.SimpleAttributeValue();
 		result.setType(value.getType());
 		result.setValue(value.getValue());
 		return result;

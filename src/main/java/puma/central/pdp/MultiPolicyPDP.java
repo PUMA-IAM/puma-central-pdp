@@ -17,7 +17,7 @@
  *    Technical Contact: maarten.decat@cs.kuleuven.be
  *    Author: maarten.decat@cs.kuleuven.be
  ******************************************************************************/
-package puma.centralpdp;
+package puma.central.pdp;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -35,6 +35,7 @@ import mdc.xacml.impl.DefaultAttributeCounter;
 import mdc.xacml.impl.HardcodedEnvironmentAttributeModule;
 import mdc.xacml.impl.SimplePolicyFinderModule;
 import oasis.names.tc.xacml._2_0.context.schema.os.RequestType;
+import puma.central.pdp.tenant.TenantPolicyEvaluatorModule;
 
 import com.sun.xacml.AbstractPolicy;
 import com.sun.xacml.BasicEvaluationCtx;
@@ -48,6 +49,7 @@ import com.sun.xacml.finder.AttributeFinderModule;
 import com.sun.xacml.finder.PolicyFinder;
 import com.sun.xacml.finder.PolicyFinderModule;
 import com.sun.xacml.remote.RemotePolicyEvaluator;
+import com.sun.xacml.remote.RemotePolicyEvaluatorModule;
 import com.sun.xacml.support.finder.PolicyReader;
 
 /**
@@ -103,9 +105,9 @@ public class MultiPolicyPDP {
         
         // Also set up the remote policy evaluator
         remotePolicyEvaluator = new RemotePolicyEvaluator();
-//        Set<RemotePolicyEvaluatorModule> remotePolicyEvaluatorModules = new HashSet<RemotePolicyEvaluatorModule>();
-//        remotePolicyEvaluatorModules.add(new TenantPolicyEvaluatorModule());
-//        remotePolicyEvaluator.setModules(remotePolicyEvaluatorModules);
+        Set<RemotePolicyEvaluatorModule> remotePolicyEvaluatorModules = new HashSet<RemotePolicyEvaluatorModule>();
+        remotePolicyEvaluatorModules.add(new TenantPolicyEvaluatorModule());
+        remotePolicyEvaluator.setModules(remotePolicyEvaluatorModules);
 	}
 	
 	/**
