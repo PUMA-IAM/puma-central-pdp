@@ -106,14 +106,14 @@ public class EntityDatabase {
 	 * Fetches all supported XACML attribute ids from the database.
 	 */
 	public Set<String> getSupportedXACMLAttributeIds() {
-		return null; // TODO fetch from the database
+		return null; // TODO fetch attribute family xacml identifiers from the database
 	}
 	
 	/**
 	 * Fetches the data type of the attribute family with given id from the database.
 	 */
 	public DataType getDataType(String attributeId) {
-		return null; // TODO fetch from the database
+		return null; // TODO fetch the data type to cast the xacml designator to from the database
 	}
 
 	/**
@@ -176,7 +176,7 @@ public class EntityDatabase {
 	 * Does NOT commit or close.
 	 */
 	public Set<Date> getDateAttribute(String entityId, String key) {
-		// TODO update
+		// LATER update
 		Set<String> strings = getStringAttribute(entityId, key);
 		Set<Date> result = new HashSet<Date>();
 		DateFormat df = DateFormat.getInstance();

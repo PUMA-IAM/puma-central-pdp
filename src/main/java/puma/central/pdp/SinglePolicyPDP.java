@@ -79,8 +79,8 @@ public class SinglePolicyPDP {
 		AttributeFinder attributeFinder = new AttributeFinder();
 		List<AttributeFinderModule> attributeModules = new ArrayList<AttributeFinderModule>();
 		attributeModules.add(envAttributeModule);
+		attributeModules.add(localAttributeFinderModule);
 		// attributeModules.add(selectorAttributeModule);
-		// attributeModules.add(localAttributeFinderModule);
 		attributeFinder.setModules(attributeModules);
 
 		// build the PDP
