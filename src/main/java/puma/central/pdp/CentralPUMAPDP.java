@@ -3,13 +3,10 @@ package puma.central.pdp;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
-import java.nio.channels.FileChannel;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -18,9 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import oasis.names.tc.xacml._2_0.context.schema.os.RequestType;
-
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -28,11 +23,9 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.FileUtils;
-
 import puma.central.pdp.util.PolicyAssembler;
 import puma.rmi.pdp.CentralPUMAPDPRemote;
 import puma.rmi.pdp.mgmt.CentralPUMAPDPMgmtRemote;
-
 import com.sun.xacml.ctx.CachedAttribute;
 import com.sun.xacml.ctx.ResponseCtx;
 import com.sun.xacml.ctx.Result;
@@ -115,7 +108,7 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 		}
 	}
 
-	private SinglePolicyPDP pdp;
+	private MultiPolicyPDP pdp;
 
 	public CentralPUMAPDP(String policyDir) throws IOException {
 		status = "NOT INITIALIZED";
@@ -141,6 +134,9 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 	 * @throws IOException 
 	 */
 	public void initializePDP(String policyDir) throws IOException {
+		// Initialize some variables
+		this.policyDir = policyDir;
+		this.identifiers = new ArrayList<String>();
 		// store for later usage
 		this.centralPUMAPolicyFilename = policyDir
 				+ CENTRAL_PUMA_POLICY_FILENAME;
@@ -159,13 +155,17 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 			logger.log(Level.SEVERE, "Could not initialize global policy", e);
 			throw e;
 		}
-		this.pdp = new SinglePolicyPDP(applicationPolicyStream);
-		this.policyDir = policyDir;
+		// Generate the MultiPolicyPDP
+		List<InputStream> streams = new ArrayList<InputStream>();
+		streams.add(applicationPolicyStream);
+		for (InputStream next: detectDeployedTenantPolicies())
+			streams.add(next);
+		this.pdp = new MultiPolicyPDP(streams);
+		// Report success
 		logger.info("initialized application PDP");
 		status = "OK";
-		this.identifiers = new ArrayList<String>();
 	}
-	
+
 	private void initializeGlobalPolicy() throws IOException {
 		File destination = new File(this.globalPUMAPolicyFilename);
 		destination.createNewFile();
@@ -198,6 +198,26 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 	        }
 	    }*/
 	}
+	
+
+	private List<InputStream> detectDeployedTenantPolicies() {
+		List<InputStream> result = new ArrayList<InputStream>();
+		File currentDirectory = new File(this.policyDir);
+		for (File next: currentDirectory.listFiles()) {
+			Long tenantIdentifier;
+			try {
+				tenantIdentifier = Long.parseLong(next.getName().substring(0, next.getName().indexOf(".")));
+				this.registerPolicy(tenantIdentifier.toString());
+				result.add(new FileInputStream(next));
+				logger.info("Detected tenant policy \"" + next.getName() + "\"");
+			} catch (NumberFormatException ex) {
+				continue;
+			} catch (FileNotFoundException ex) {
+				logger.warning("Could not register tenant policy \"" + next.getName() + "\": " + ex.getLocalizedMessage());
+			}
+		}
+		return result;
+	}
 
 	/**
 	 * Evaluate a request and return the result.
@@ -216,6 +236,7 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 					+ result.getObligations().size() + ") ";
 		}
 		System.out.println(msg);
+		logger.info(msg);
 		
 		return response;
 	}
@@ -253,19 +274,12 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 	}
 	
 	@Override
-	public void submitTenantPolicies(List<String> tenantIdentifiers, List<String> policies) {
-		if (tenantIdentifiers.size() != policies.size())
-			logger.log(Level.WARNING, "Could not deploy policies. The number of tenant identifiers does not match the number of policies to deploy");
-		for (int i = 0; i < tenantIdentifiers.size(); i++)
-			this.loadTenantPolicy(tenantIdentifiers.get(i), policies.get(i));
-	}
-	
-	@Override
 	public void loadTenantPolicy(String tenantIdentifier, String policy) {
-		PrintWriter writer;
 		// Write the tenant policy
 		try {
-			writer = new PrintWriter(this.policyDir + tenantIdentifier + ".xml", "UTF-8");	
+			PrintWriter writer = new PrintWriter(this.constructFilename(tenantIdentifier), "UTF-8");	
+			writer.print(policy);
+			writer.close();
 		} catch (FileNotFoundException e) {
 			logger.log(
 					Level.SEVERE,
@@ -278,44 +292,60 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 					e);
 			return;
 		}
-		writer.print(policy);
-		writer.close();
+		// Register the tenant
+		this.registerPolicy(tenantIdentifier);
+	}
+	
+	/**
+	 * Registers a tenant into the PDP manager
+	 * 
+	 * Note: this method should ONLY be called if a file with the corresponding filename {@code constructFilename} has been created and written to
+	 * @param tenantIdentifier
+	 */
+	private void registerPolicy(String tenantIdentifier) {		
 		// Rewrite the central policy and make sure there is a reference to the added policy
 		PolicyAssembler ass = null;
+		PrintWriter writer;
+		if (!this.identifiers.contains(tenantIdentifier))
+			this.identifiers.add(tenantIdentifier);
 		try {
 			//stream = new FileOutputStream(this.globalPUMAPolicyFilename);
 			writer = new PrintWriter(this.globalPUMAPolicyFilename, "UTF-8");
 			ass = new PolicyAssembler();
 			writer.print(ass.assemble(this.identifiers));
+			writer.close();
 		} catch (FileNotFoundException e) {
 			logger.log(Level.WARNING, "Unable to deploy policy", e);
 		} catch (UnsupportedEncodingException e) {
 			logger.log(Level.WARNING, "Unable to deploy policy", e);
 		}
-		writer.close();
-		if (!this.identifiers.contains(tenantIdentifier))
-			this.identifiers.add(tenantIdentifier);
 		// Finish
-		logger.info("Succesfully deployed new tenant policy " + this.policyDir + tenantIdentifier + ".xml");
-		this.reload();
+		logger.info("Succesfully deployed new tenant policy " + this.constructFilename(tenantIdentifier));
+		this.reload();	// Reloads the pdp (including policy finder modules)
+	}
+
+	private String constructFilename(String tenantIdentifier) {
+		return this.policyDir + tenantIdentifier + ".xml";
 	}
 
 	@Override
 	public void reload() {
 		// just set up a new PDP
-		InputStream applicationPolicyStream;
+		List<InputStream> streams = new ArrayList<InputStream>(this.identifiers.size() + 1);
 		try {
-			applicationPolicyStream = new FileInputStream(
-					globalPUMAPolicyFilename);
+			InputStream applicationPolicyStream = new FileInputStream(globalPUMAPolicyFilename);
+			streams.add(applicationPolicyStream);
+			for (String identifier: this.identifiers)
+				streams.add(new FileInputStream(constructFilename(identifier)));
 		} catch (FileNotFoundException e) {
 			logger.log(Level.SEVERE,
-					"Could not reload PDP: Central PUMA PDP policy file not found",
+					"Could not reload PDP: Policy file not found",
 					e);
-			status = "APPLICATION POLICY FILE NOT FOUND";
+			status = "POLICY FILE NOT FOUND";
 			return;
-		}
-		this.pdp = new SinglePolicyPDP(applicationPolicyStream);
-		logger.info("Reloaded Global PUMA Policy");
+		}			
+		this.pdp = new MultiPolicyPDP(streams);
+		logger.info("Reloaded policies at central PUMA PDP");
 		status = "OK";
 	}
 

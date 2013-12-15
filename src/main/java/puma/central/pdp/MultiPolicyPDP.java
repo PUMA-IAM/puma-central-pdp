@@ -1,29 +1,12 @@
-/*******************************************************************************
- * Copyright 2013 KU Leuven Research and Developement - IBBT - Distrinet 
- * 
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- * 
- *        http://www.apache.org/licenses/LICENSE-2.0
- * 
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
- *    
- *    Administrative Contact: dnet-project-office@cs.kuleuven.be
- *    Technical Contact: maarten.decat@cs.kuleuven.be
- *    Author: maarten.decat@cs.kuleuven.be
- ******************************************************************************/
 package puma.central.pdp;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -48,26 +31,26 @@ import com.sun.xacml.finder.PolicyFinderModule;
 import com.sun.xacml.support.finder.PolicyReader;
 
 /**
- * Class used for evaluating one of multiple policies, based on their id.
- * Internally, this PDP builds multiple SimplePDPs.
+ * Class used for evaluating multiple policies, based on their id.
+ * Internally, this PDP contains a policy finder with a finder module for each separate policy.
  * 
- * @author Maarten Decat
- * 
+ * @author jasper
+ *
  */
-public class SinglePolicyPDP {
-
-	private static final Logger logger = Logger.getLogger(SinglePolicyPDP.class
+public class MultiPolicyPDP {
+	private static final Logger logger = Logger.getLogger(MultiPolicyPDP.class
 			.getName());
 
-	private static final String CENTRAL_POLICY_ID = "global-puma-policy";
+	private static final String GLOBAL_POLICY_ID = "global-puma-policy";
 
+	private Map<String, AbstractPolicy> policies;
 	private PDP pdp;
 
 	/**
 	 * Initialize this MultiPolicyPDP with given collection of input streams
 	 * pointing to XACML policies (XML files).
 	 */
-	public SinglePolicyPDP(InputStream applicationPolicyStream) {
+	public MultiPolicyPDP(List<InputStream> policyStreams) {
 		// Now setup the attribute finder
 		// 1. current date/time
 		HardcodedEnvironmentAttributeModule envAttributeModule = new HardcodedEnvironmentAttributeModule();
@@ -85,26 +68,34 @@ public class SinglePolicyPDP {
 
 		// build the PDP
 		PolicyReader reader = new PolicyReader(null);
-		AbstractPolicy policy;
+		this.policies = new HashMap<String, AbstractPolicy>();
+		Boolean containsGlobalPolicy = false;
 		try {
-			policy = reader.readPolicy(applicationPolicyStream);
+			AbstractPolicy policy;
+			for (InputStream next: policyStreams) {
+				policy = reader.readPolicy(next);
+				this.policies.put(policy.getId().toString(), policy);
+				if (policy.getId().toASCIIString().equals(GLOBAL_POLICY_ID))
+					containsGlobalPolicy = true;
+			}
 		} catch (ParsingException e) {
 			logger.log(Level.SEVERE, "Error when parsing application policy", e);
 			return;
 		}
-		if (!policy.getId().toString().equals(CENTRAL_POLICY_ID)) {
+		if (!containsGlobalPolicy) {
 			logger.severe("The id of the given policy should be \""
-					+ CENTRAL_POLICY_ID + "\". Given id: \""
-					+ policy.getId().toString() + "\".");
+					+ GLOBAL_POLICY_ID + "\". Given: "
+					+ policies.size() + " policies.");
 			return;
 		}
 
 		// construct the policy finder for the single policy
 		PolicyFinder policyFinder = new PolicyFinder();
-		SimplePolicyFinderModule simplePolicyFinderModule = new SimplePolicyFinderModule(
-				policy);
 		Set<PolicyFinderModule> policyModules = new HashSet<PolicyFinderModule>();
-		policyModules.add(simplePolicyFinderModule);
+		for (AbstractPolicy next: this.policies.values()) {
+			SimplePolicyFinderModule simplePolicyFinderModule = new SimplePolicyFinderModule(next);			
+			policyModules.add(simplePolicyFinderModule);
+		}
 		policyFinder.setModules(policyModules);
 		this.pdp = new PDP(new PDPConfig(attributeFinder, policyFinder, null,
 				null, new DefaultAttributeCounter()));
@@ -114,9 +105,7 @@ public class SinglePolicyPDP {
 	 * Returns the list of supported policy ids.
 	 */
 	public List<String> getSupportedPolicyIds() {
-		List<String> result = new ArrayList<String>();
-		result.add(CENTRAL_POLICY_ID);
-		return result;
+		return new ArrayList<String>(this.policies.keySet());
 	}
 
 	/**

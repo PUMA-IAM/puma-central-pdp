@@ -159,7 +159,9 @@ public class LocalAttributeFinderModule extends AttributeFinderModule {
 		// return new EvaluationResult(
 		// BagAttribute.createEmptyBag(attributeType));
 		// }
-
+		// DEBUG
+		logger.info("fetching attribute " + attributeId.toASCIIString() + " (" + designatorType + ")");
+		/// DEBUG
 		// We're OK to go, so start with fetching the
 		// entity id (a lot of cruft...)
 		String entityId;

@@ -1,13 +1,17 @@
 package puma.central.pdp.attr;
 
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -20,6 +24,9 @@ public class EntityDatabase {
 
 	private static final Logger logger = Logger.getLogger(EntityDatabase.class
 			.getName());
+	private static final String DB_USER = "admin";
+	private static final String DB_PASSWORD = "admin";
+	private static final String DB_CONNECTION = "jdbc:mysql://localhost:3306/puma-mgmt";
 
 	/**
 	 * Initializes this new EntityDatabase. Does not open a connection yet.
@@ -48,7 +55,10 @@ public class EntityDatabase {
 	 */
 	public void open(boolean readOnly) {
 		try {
-			conn = null; // TODO get db connection
+			Properties connectionProperties = new Properties();
+			connectionProperties.put("user", DB_USER);
+			connectionProperties.put("password", DB_PASSWORD);
+			conn = DriverManager.getConnection(DB_CONNECTION);
 			conn.setReadOnly(readOnly);
 			conn.setAutoCommit(false);
 		} catch (SQLException e) {
@@ -79,41 +89,75 @@ public class EntityDatabase {
 	}
 	
 	/**
-	 * Opens a connection, creates the tables, commits and closes the connection.
-	 */
-	public static void createTables() {
-		// TODO update this query
-		try {
-			Connection conn = null; // TODO get connection to the database  
-			PreparedStatement createTablesPS = conn.prepareStatement("CREATE TABLE `attributes` (\n" + 
-					"  `id` int(11) NOT NULL AUTO_INCREMENT,\n" + 
-					"  `entity_id` varchar(45) NOT NULL,\n" + 
-					"  `attribute_key` varchar(45) NOT NULL,\n" + 
-					"  `attribute_value` varchar(100) NOT NULL,\n" + 
-					"  PRIMARY KEY (`id`),\n" + 
-					"  KEY `index` (`entity_id`,`attribute_key`)\n" + 
-					");");
-			createTablesPS.execute();
-			conn.close();
-			logger.info("Successfully created tables.");
-		} catch (SQLException e) {
-			logger.log(Level.SEVERE, "Cannot create tables.", e);
-			throw new RuntimeException(e);
-		}
-	}
-	
-	/**
 	 * Fetches all supported XACML attribute ids from the database.
 	 */
 	public Set<String> getSupportedXACMLAttributeIds() {
-		return null; // TODO fetch attribute family xacml identifiers from the database
+		Set<String> result = new HashSet<String>();
+		try {
+			String query = "SELECT xacmlIdentifier FROM SP_ATTRTYPE";
+			PreparedStatement stmt;
+				stmt = this.conn.prepareStatement(query);
+			
+			ResultSet queryResult = stmt.executeQuery();
+			while (queryResult.next())
+				result.add(queryResult.getString("xacmlIdentifier"));
+		} catch (SQLException e) {
+			logger.log(Level.SEVERE, "Could not fetch xacml attribute identifiers", e);
+		}
+		return result;
 	}
 	
 	/**
 	 * Fetches the data type of the attribute family with given id from the database.
+	 * @return the datatype for the specified id. If multiple entities were found for the given id, then a random entity is chosen and has its datatype returned. If no id was found in the database, then String is returned.
 	 */
 	public DataType getDataType(String attributeId) {
-		return null; // TODO fetch the data type to cast the xacml designator to from the database
+		// QUESTION Jasper @ Maarten: Met attributeId wordt xacml identifier bedoeld neem ik aan? 
+		List<String> result = new ArrayList<String>();
+		try {
+			String query = "SELECT dataType FROM SP_ATTRTYPE WHERE xacmlIdentifier=?";
+			PreparedStatement stmt;
+				stmt = this.conn.prepareStatement(query);
+			stmt.setString(1, attributeId);
+			ResultSet queryResult = stmt.executeQuery();
+			while (queryResult.next())
+				result.add(queryResult.getString("dataType"));
+			if (!result.isEmpty()) {
+				if (result.size() > 1)
+					logger.warning("Multiple xacml identifiers: " + attributeId + ". Fetching random family.");
+				String type = result.get(0);
+				return DataType.valueOf(type);
+			}
+		} catch (SQLException e) {
+			logger.log(Level.SEVERE, "Could not fetch xacml attribute identifiers", e);
+		} catch (IllegalArgumentException e) {
+			logger.log(Level.SEVERE, "Illegal datatype found in database", e);
+		}
+		return DataType.String;	// QUESTION Jasper @ Maarten: wat moet ik eigenlijk in dit geval het beste doen? Hiervoor ken ik de SunXACML internals nog niet goed genoeg...
+	}
+	
+	private Long getFamilyId(String xacmlIdentifier) {
+		List<Long> result = new ArrayList<Long>();
+		try {
+			String query = "SELECT id FROM SP_ATTRTYPE WHERE xacmlIdentifier=?";
+			PreparedStatement stmt;
+				stmt = this.conn.prepareStatement(query);
+			stmt.setString(1, xacmlIdentifier);
+			ResultSet queryResult = stmt.executeQuery();
+			while (queryResult.next())
+				result.add(queryResult.getLong("id"));
+			if (!result.isEmpty()) {
+				if (result.size() > 1)
+					logger.warning("Multiple xacml identifiers: " + xacmlIdentifier + ". Fetching random family and hoping for the best.");
+				Long id = result.get(0);
+				return id;
+			}
+		} catch (SQLException e) {
+			logger.log(Level.SEVERE, "Could not fetch xacml attribute identifiers", e);
+		} catch (NumberFormatException e) {
+			logger.log(Level.SEVERE, "Illegal family id found in database", e);
+		}
+		return null;
 	}
 
 	/**
@@ -121,16 +165,16 @@ public class EntityDatabase {
 	 * Does NOT commit or close.
 	 */
 	public Set<String> getStringAttribute(String entityId, String key) {
-		// TODO update
+		// QUESTION: Jasper @ Maarten: ik neem wederom aan dat het hier gaat om de xacmlIdentifier als er een key wordt doorgegeven?
 		try {
-			PreparedStatement getAttributePS = conn.prepareStatement("SELECT * FROM attributes WHERE entity_id=? && attribute_key=?;");
-			getAttributePS.setString(1, entityId);
-			getAttributePS.setString(2, key);
+			PreparedStatement getAttributePS = conn.prepareStatement("SELECT value FROM SP_ATTR WHERE user_id=? AND family_id=?");
+			getAttributePS.setLong(1, Long.valueOf(entityId));
+			getAttributePS.setLong(2, getFamilyId(key));
 			ResultSet result = getAttributePS.executeQuery();
 			// process the result
 			Set<String> r = new HashSet<String>();
 			while (result.next()) {
-				r.add(result.getString("attribute_value"));
+				r.add(result.getString("value"));
 			}
 			return r;
 		} catch (SQLException e) {
@@ -144,7 +188,6 @@ public class EntityDatabase {
 	 * Does NOT commit or close.
 	 */
 	public Set<Integer> getIntegerAttribute(String entityId, String key) {
-		// TODO update
 		Set<String> strings = getStringAttribute(entityId, key);
 		Set<Integer> result = new HashSet<Integer>();
 		for(String s: strings) {
@@ -158,7 +201,6 @@ public class EntityDatabase {
 	 * Does NOT commit or close.
 	 */
 	public Set<Boolean> getBooleanAttribute(String entityId, String key) {
-		// TODO update
 		Set<String> strings = getStringAttribute(entityId, key);
 		Set<Boolean> result = new HashSet<Boolean>();
 		for(String s: strings) {
@@ -176,7 +218,6 @@ public class EntityDatabase {
 	 * Does NOT commit or close.
 	 */
 	public Set<Date> getDateAttribute(String entityId, String key) {
-		// LATER update
 		Set<String> strings = getStringAttribute(entityId, key);
 		Set<Date> result = new HashSet<Date>();
 		DateFormat df = DateFormat.getInstance();
@@ -190,74 +231,5 @@ public class EntityDatabase {
 		}
 		return result;
 	}
-
-//	/**
-//	 * Stores an integer attribute in the database using the connection of this database.
-//	 * Does NOT commit or close.
-//	 */
-//	public void storeAttribute(String entityId, String key, int value) {
-//		// TODO update
-//		this.storeAttribute(entityId, key, "" + value);
-//	}
-//
-//	/**
-//	 * Stores a boolean attribute in the database using the connection of this database.
-//	 * Does NOT commit or close.
-//	 */
-//	public void storeAttribute(String entityId, String key, boolean value) {
-//		// TODO update
-//		String v;
-//		if(value) {
-//			v = "true";
-//		} else {
-//			v = "false";
-//		}
-//		this.storeAttribute(entityId, key, v);
-//	}
-//	
-//	/**
-//	 * Stores a string attribute in the database using the connection of this database.
-//	 * Does NOT commit or close.
-//	 */
-//	public void storeAttribute(String entityId, String key, Date value) {
-//		// TODO update
-//		String v;
-//		if(value != null) {
-//			DateFormat df = DateFormat.getInstance();
-//			v = df.format(value);
-//		} else {
-//			v = "";
-//		}
-//		this.storeAttribute(entityId, key, v);
-//	}
-//	
-//	/**
-//	 * Stores a set of string attributes in the database using the connection of this database.
-//	 * Does NOT commit or close.
-//	 */
-//	public void storeAttribute(String entityId, String key, Collection<String> value) {
-//		// TODO update
-//		for(String s: value) {
-//			this.storeAttribute(entityId, key, s);
-//		}
-//	}
-//	
-//	/**
-//	 * Stores a string attribute in the database using the connection of this database.
-//	 * Does NOT commit or close.
-//	 */
-//	public void storeAttribute(String entityId, String key, String value) {
-//		// TODO update
-//		try {
-//			PreparedStatement storeAttributePS = conn.prepareStatement("INSERT INTO attributes VALUES (default, ?, ?, ?);");
-//			storeAttributePS.setString(1, entityId);
-//			storeAttributePS.setString(2, key);
-//			storeAttributePS.setString(3, value);
-//			storeAttributePS.executeUpdate();
-//		} catch (SQLException e) {
-//			logger.log(Level.SEVERE, "Cannot execute query.", e);
-//			throw new RuntimeException(e);
-//		}
-//	}
 
 }

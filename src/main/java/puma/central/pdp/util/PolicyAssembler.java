@@ -36,7 +36,6 @@ public class PolicyAssembler {
             "PolicySetId=\"global-puma-policy\"\n" +
             "PolicyCombiningAlgId=\"urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:deny-overrides\">\n" +
             "<Description>The global access control policy</Description>\n" + 
-            "<Target></Target>\n" + 
             "<PolicySetIdReference>central-puma-policy</PolicySetIdReference>\n";
 	private static final String POLICY_FOOTER = "</PolicySet>\n";
 	
