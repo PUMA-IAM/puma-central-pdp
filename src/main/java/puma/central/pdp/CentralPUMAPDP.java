@@ -12,10 +12,13 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import oasis.names.tc.xacml._2_0.context.schema.os.RequestType;
+
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -23,9 +26,11 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.FileUtils;
+
 import puma.central.pdp.util.PolicyAssembler;
 import puma.rmi.pdp.CentralPUMAPDPRemote;
 import puma.rmi.pdp.mgmt.CentralPUMAPDPMgmtRemote;
+
 import com.sun.xacml.ctx.CachedAttribute;
 import com.sun.xacml.ctx.ResponseCtx;
 import com.sun.xacml.ctx.Result;
@@ -47,6 +52,10 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 	private static final String CENTRAL_PUMA_POLICY_FILENAME = "central-puma-policy.xml";
 	
 	private static final String GLOBAL_PUMA_POLICY_FILENAME = "global-puma-policy.xml";
+	
+	private static final String GLOBAL_PUMA_PDP_RMI_NAME = "global-puma-pdp";
+	
+	private static final String GLOBAL_PUMA_POLICY_ID = "global-puma-policy";
 
 	private static final int RMI_REGISITRY_PORT = 2040;
 
@@ -141,12 +150,9 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 		this.centralPUMAPolicyFilename = policyDir
 				+ CENTRAL_PUMA_POLICY_FILENAME;
 		this.globalPUMAPolicyFilename = policyDir + GLOBAL_PUMA_POLICY_FILENAME;
-		InputStream applicationPolicyStream;
 		try {
 			this.initializeGlobalPolicy();
-			applicationPolicyStream = new FileInputStream(
-					globalPUMAPolicyFilename);
-			logger.info("Using policy file " + globalPUMAPolicyFilename);
+			logger.info("Initialized global policy");
 		} catch (FileNotFoundException e) {
 			logger.log(Level.SEVERE, "Application policy file not found");
 			status = "APPLICATION POLICY FILE NOT FOUND";
@@ -156,11 +162,7 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 			throw e;
 		}
 		// Generate the MultiPolicyPDP
-		List<InputStream> streams = new ArrayList<InputStream>();
-		streams.add(applicationPolicyStream);
-		for (InputStream next: detectDeployedTenantPolicies())
-			streams.add(next);
-		this.pdp = new MultiPolicyPDP(streams);
+		this.pdp = new MultiPolicyPDP(getPolicyStreams(policyDir));
 		// Report success
 		logger.info("initialized application PDP");
 		status = "OK";
@@ -198,6 +200,27 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 	        }
 	    }*/
 	}
+
+	private List<InputStream> getPolicyStreams(String policyDir) {
+		File dir = new File(policyDir);
+		List<File> files = Arrays.asList(dir.listFiles());
+		if (files.isEmpty()) {
+			throw new RuntimeException("No policies found, exiting.");
+		}
+		List<InputStream> policies = new ArrayList<InputStream>();
+		for (File file : files) {
+			if (file.isFile() && !file.getName().endsWith("~")) {
+				// can be a directory as well
+				try {
+					policies.add(new FileInputStream(file));
+				} catch (FileNotFoundException e) {
+					// should never happen
+					e.printStackTrace();
+				}
+			}
+		}
+		return policies;
+	}
 	
 
 	private List<InputStream> detectDeployedTenantPolicies() {
@@ -224,7 +247,9 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 	 */
 	public ResponseCtx evaluate(RequestType request,
 			List<CachedAttribute> cachedAttributes) throws RemoteException {
-		ResponseCtx response = this.pdp.evaluate(request,
+		logger.info("Received policy request for Central PUMA PDP:");
+		
+		ResponseCtx response = this.pdp.evaluate(GLOBAL_PUMA_POLICY_ID, request,
 				cachedAttributes);
 
 		// print out some information
@@ -235,7 +260,6 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 					+ result.getHumanReadableDecision() + ", #obligations: "
 					+ result.getObligations().size() + ") ";
 		}
-		System.out.println(msg);
 		logger.info(msg);
 		
 		return response;
@@ -331,20 +355,7 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 	@Override
 	public void reload() {
 		// just set up a new PDP
-		List<InputStream> streams = new ArrayList<InputStream>(this.identifiers.size() + 1);
-		try {
-			InputStream applicationPolicyStream = new FileInputStream(globalPUMAPolicyFilename);
-			streams.add(applicationPolicyStream);
-			for (String identifier: this.identifiers)
-				streams.add(new FileInputStream(constructFilename(identifier)));
-		} catch (FileNotFoundException e) {
-			logger.log(Level.SEVERE,
-					"Could not reload PDP: Policy file not found",
-					e);
-			status = "POLICY FILE NOT FOUND";
-			return;
-		}			
-		this.pdp = new MultiPolicyPDP(streams);
+		this.pdp = new MultiPolicyPDP(getPolicyStreams(policyDir));
 		logger.info("Reloaded policies at central PUMA PDP");
 		status = "OK";
 	}
