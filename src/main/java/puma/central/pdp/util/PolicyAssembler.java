@@ -1,25 +1,7 @@
 package puma.central.pdp.util;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
-import com.sun.xacml.AbstractPolicy;
-import com.sun.xacml.ParsingException;
-import com.sun.xacml.PolicyReference;
-import com.sun.xacml.PolicySet;
-import com.sun.xacml.combine.PolicyCombiningAlgorithm;
-import com.sun.xacml.finder.PolicyFinder;
-import com.sun.xacml.finder.PolicyFinderModule;
-import com.sun.xacml.support.finder.FilePolicyModule;
-import com.sun.xacml.support.finder.PolicyReader;
 
 public class PolicyAssembler {
 	private static final Logger logger = Logger.getLogger(PolicyAssembler.class.getName());

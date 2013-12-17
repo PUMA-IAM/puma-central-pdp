@@ -17,6 +17,15 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class EntityDatabase {
+	
+	private static EntityDatabase instance;
+	
+	public static EntityDatabase getInstance() {
+		if(instance == null) {
+			instance = new EntityDatabase();
+		}
+		return instance;
+	}
 
 	/**************************
 	 * CONSTRUCTOR
@@ -31,7 +40,7 @@ public class EntityDatabase {
 	/**
 	 * Initializes this new EntityDatabase. Does not open a connection yet.
 	 */
-	public EntityDatabase() {
+	private EntityDatabase() {
 		
 	}
 
@@ -58,7 +67,7 @@ public class EntityDatabase {
 			Properties connectionProperties = new Properties();
 			connectionProperties.put("user", DB_USER);
 			connectionProperties.put("password", DB_PASSWORD);
-			conn = DriverManager.getConnection(DB_CONNECTION);
+			conn = DriverManager.getConnection(DB_CONNECTION, connectionProperties);
 			conn.setReadOnly(readOnly);
 			conn.setAutoCommit(false);
 		} catch (SQLException e) {

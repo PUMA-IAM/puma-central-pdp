@@ -6,4 +6,5 @@ PolicySetId="global-puma-policy"
 PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:deny-overrides">
 <Description>The global access control policy</Description>
 <PolicySetIdReference>central-puma-policy</PolicySetIdReference>
+<PolicySetIdReference>urn:xacml:2.0:puma:tenantsetid:2</PolicySetIdReference>
 </PolicySet>

@@ -173,7 +173,7 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 		destination.createNewFile();
 		PolicyAssembler ass = new PolicyAssembler();
 		PrintWriter writer = new PrintWriter(this.globalPUMAPolicyFilename, "UTF-8");
-		writer.print(ass.assemble(new ArrayList<String>(0)));
+		writer.print(ass.assemble(detectDeployedTenantPolicies()));
 		writer.close();
 		
 		/*File sourceFile = new File(this.centralPUMAPolicyFilename);
@@ -220,23 +220,22 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 			}
 		}
 		return policies;
-	}
-	
+	}	
 
-	private List<InputStream> detectDeployedTenantPolicies() {
-		List<InputStream> result = new ArrayList<InputStream>();
+	private List<String> detectDeployedTenantPolicies() {
+		List<String> result = new ArrayList<String>();
 		File currentDirectory = new File(this.policyDir);
 		for (File next: currentDirectory.listFiles()) {
-			Long tenantIdentifier;
-			try {
-				tenantIdentifier = Long.parseLong(next.getName().substring(0, next.getName().indexOf(".")));
-				this.registerPolicy(tenantIdentifier.toString());
-				result.add(new FileInputStream(next));
-				logger.info("Detected tenant policy \"" + next.getName() + "\"");
-			} catch (NumberFormatException ex) {
-				continue;
-			} catch (FileNotFoundException ex) {
-				logger.warning("Could not register tenant policy \"" + next.getName() + "\": " + ex.getLocalizedMessage());
+			if(next.isFile() && !next.getName().endsWith("~")) {
+				Long tenantIdentifier;
+				try {
+					tenantIdentifier = Long.parseLong(next.getName().substring(0, next.getName().indexOf(".")));
+					this.registerPolicy(tenantIdentifier.toString());
+					result.add("" + tenantIdentifier);
+					logger.info("Detected tenant policy \"" + next.getName() + "\"");
+				} catch (NumberFormatException ex) {
+					continue;
+				}
 			}
 		}
 		return result;
@@ -247,7 +246,11 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 	 */
 	public ResponseCtx evaluate(RequestType request,
 			List<CachedAttribute> cachedAttributes) throws RemoteException {
-		logger.info("Received policy request for Central PUMA PDP:");
+		String log = "Received policy request for Central PUMA PDP. Cached attributes:\n";
+		for(CachedAttribute a: cachedAttributes) {
+			log += a.getId() + " = " + a.getValue().toString() + "\n";
+		}
+		logger.info(log);
 		
 		ResponseCtx response = this.pdp.evaluate(GLOBAL_PUMA_POLICY_ID, request,
 				cachedAttributes);

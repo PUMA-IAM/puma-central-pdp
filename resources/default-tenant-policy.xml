@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PolicySet  xmlns="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+            xsi:schemaLocation="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
+            PolicySetId="tenant-policy-interims" 
+            PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:deny-overrides">
+	<Description>Restrict reading files.</Description>
+	<Target>
+    <Subjects>
+      <Subject>
+        <SubjectMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+          <AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">intermim</AttributeValue>
+	        <SubjectAttributeDesignator AttributeId="subject:roles" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+        </SubjectMatch>
+      </Subject>
+    </Subjects>
+	</Target>
+  <Policy xmlns="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
+          xmlns:xacml-context="urn:oasis:names:tc:xacml:2.0:context:schema:os" 
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+          xsi:schemaLocation="urn:oasis:names:tc:xacml:2.0:policy:schema:os http://docs.oasis-open.org/xacml/access_control-xacml-2.0-policy-schema-os.xsd" 
+          xmlns:md="urn:mdc:xacml" 
+          PolicyId="policy:only-during-shifts" 
+          RuleCombiningAlgId="urn:oasis:names:tc:xacml:1.0:rule-combining-algorithm:permit-overrides">
+	  <Description>Interims can only read documents during their shifts.</Description>
+	  <Target>
+		  <Resources>
+			  <Resource>
+				  <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+				      <AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">document</AttributeValue>
+					  <ResourceAttributeDesignator AttributeId="object:type" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+				  </ResourceMatch>
+			  </Resource>
+		  </Resources>
+	    <Actions>
+		    <Action>
+			    <ActionMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+			      <AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">read</AttributeValue>
+				    <ActionAttributeDesignator AttributeId="action:id" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+			    </ActionMatch>
+		    </Action>
+	    </Actions>
+	  </Target>
+    <Rule RuleId="rule:15" Effect="Deny">
+	    <Description>This is just the single rule for the above policy.</Description>
+	    <Condition>
+		    <Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:not">
+		      <Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:and">
+		        <Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:dateTime-greater-than-or-equal">
+              <Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:dateTime-one-and-only">
+                <EnvironmentAttributeDesignator AttributeId="environment:currentDateTime" DataType="http://www.w3.org/2001/XMLSchema#dateTime"/>
+              </Apply>
+              <Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:dateTime-one-and-only">
+			          <SubjectAttributeDesignator AttributeId="subject:shift_start" DataType="http://www.w3.org/2001/XMLSchema#dateTime"/>
+              </Apply>
+		        </Apply>
+		        <Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:dateTime-less-than-or-equal">
+              <Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:dateTime-one-and-only">
+                <EnvironmentAttributeDesignator AttributeId="environment:currentDateTime" DataType="http://www.w3.org/2001/XMLSchema#dateTime"/>
+              </Apply>
+              <Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:dateTime-one-and-only">
+			          <SubjectAttributeDesignator AttributeId="subject:shift_stop" DataType="http://www.w3.org/2001/XMLSchema#dateTime"/>
+              </Apply>
+            </Apply>
+          </Apply>
+        </Apply>
+	    </Condition>
+    </Rule>
+  </Policy>
+</PolicySet>

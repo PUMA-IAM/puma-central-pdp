@@ -60,8 +60,9 @@ public class LocalAttributeFinderModule extends AttributeFinderModule {
 	public static URI resourceIdIdentifier = null;
 	static {
 		try {
-			resourceIdIdentifier = new URI(
-					"urn:oasis:names:tc:xacml:1.0:resource:resource-id");
+			resourceIdIdentifier = new URI("object:id");
+			// resourceIdIdentifier = new URI(
+			// "urn:oasis:names:tc:xacml:1.0:resource:resource-id");
 		} catch (URISyntaxException e) {
 			// will not happen with this code
 		}
@@ -73,21 +74,22 @@ public class LocalAttributeFinderModule extends AttributeFinderModule {
 	public static URI subjectIdIdentifier = null;
 	static {
 		try {
-			subjectIdIdentifier = new URI(
-					"urn:oasis:names:tc:xacml:1.0:subject:subject-id");
+			subjectIdIdentifier = new URI("subject:id");
+			// subjectIdIdentifier = new URI(
+			// "urn:oasis:names:tc:xacml:1.0:subject:subject-id");
 		} catch (URISyntaxException e) {
 			// will not happen with this code
 		}
 	}
-	
+
 	private EntityDatabase edb;
-	
+
 	public LocalAttributeFinderModule(EntityDatabase edb) {
 		this.edb = edb;
 	}
-	
+
 	public LocalAttributeFinderModule() {
-		this(new EntityDatabase());
+		this(EntityDatabase.getInstance());
 	}
 
 	/**
@@ -116,7 +118,7 @@ public class LocalAttributeFinderModule extends AttributeFinderModule {
 	@Override
 	public Set<String> getSupportedIds() {
 		Set<String> set = new HashSet<String>();
-		set.addAll(this.edb.getSupportedXACMLAttributeIds()); 
+		set.addAll(this.edb.getSupportedXACMLAttributeIds());
 		return set;
 	}
 
@@ -160,8 +162,9 @@ public class LocalAttributeFinderModule extends AttributeFinderModule {
 		// BagAttribute.createEmptyBag(attributeType));
 		// }
 		// DEBUG
-		logger.info("fetching attribute " + attributeId.toASCIIString() + " (" + designatorType + ")");
-		/// DEBUG
+		logger.info("fetching attribute " + attributeId.toASCIIString() + " ("
+				+ designatorType + ")");
+		// / DEBUG
 		// We're OK to go, so start with fetching the
 		// entity id (a lot of cruft...)
 		String entityId;
@@ -226,7 +229,7 @@ public class LocalAttributeFinderModule extends AttributeFinderModule {
 			logger.fine("Resource identifier: " + resourceId);
 			entityId = resourceId;
 		} else if (designatorType == AttributeDesignator.ENVIRONMENT_TARGET) {
-			entityId = "environment";			
+			entityId = "environment";
 		} else {
 			logger.warning("WTF, attibute of designatorType " + designatorType
 					+ " requested from HardcodedAttributeFinderModule?");
@@ -236,9 +239,11 @@ public class LocalAttributeFinderModule extends AttributeFinderModule {
 
 		// now that we have the entity id: retrieve the necessary
 		// value from the database for this subject
-		List<AttributeValue> values = getAttributeValue(attributeId.toString(), entityId);
+		List<AttributeValue> values = getAttributeValue(attributeId.toString(),
+				entityId);
 
 		if (values.isEmpty()) {
+			logger.warning("No values received from the db for attribute #" + attributeId);
 			return new EvaluationResult(
 					BagAttribute.createEmptyBag(attributeType));
 		} else {
@@ -248,13 +253,16 @@ public class LocalAttributeFinderModule extends AttributeFinderModule {
 
 	public List<AttributeValue> getAttributeValue(String attributeId,
 			String entityId) {
-		// FIXME if the attribute ids are not unique over the different tenants, we need
-		// to provide the entityId as well to first provide the organization owning the attribute family
-		DataType dt = this.edb.getDataType(attributeId);   
+		// FIXME if the attribute ids are not unique over the different tenants,
+		// we need
+		// to provide the entityId as well to first provide the organization
+		// owning the attribute family
+		DataType dt = this.edb.getDataType(attributeId);
 
 		List<AttributeValue> result = new ArrayList<AttributeValue>();
 		if (dt == DataType.String) {
-			Collection<String> values = edb.getStringAttribute(entityId, attributeId);
+			Collection<String> values = edb.getStringAttribute(entityId,
+					attributeId);
 			if (values.isEmpty()) {
 				logger.warning("No values found for attribute (attribute id: "
 						+ attributeId + ", entity id: " + entityId + ")");
@@ -264,8 +272,8 @@ public class LocalAttributeFinderModule extends AttributeFinderModule {
 				}
 			}
 		} else if (dt == DataType.Boolean) {
-			Collection<Boolean> values = edb
-					.getBooleanAttribute(entityId, attributeId);
+			Collection<Boolean> values = edb.getBooleanAttribute(entityId,
+					attributeId);
 			if (values.isEmpty()) {
 				logger.warning("No values found for attribute (attribute id: "
 						+ attributeId + ", entity id: " + entityId + ")");
@@ -275,7 +283,8 @@ public class LocalAttributeFinderModule extends AttributeFinderModule {
 				}
 			}
 		} else if (dt == DataType.DateTime) {
-			Collection<Date> values = edb.getDateAttribute(entityId, attributeId);
+			Collection<Date> values = edb.getDateAttribute(entityId,
+					attributeId);
 			if (values.isEmpty()) {
 				logger.warning("No values found for attribute (attribute id: "
 						+ attributeId + ", entity id: " + entityId + ")");
