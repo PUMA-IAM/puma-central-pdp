@@ -26,8 +26,16 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.FileUtils;
+import org.apache.log4j.BasicConfigurator;
+import org.apache.thrift.server.TServer;
+import org.apache.thrift.server.TSimpleServer;
+import org.apache.thrift.transport.TServerSocket;
+import org.apache.thrift.transport.TServerTransport;
+import org.apache.thrift.transport.TTransportException;
 
 import puma.central.pdp.util.PolicyAssembler;
+import puma.peputils.thrift.PEPServer;
+import puma.peputils.thrift.RemotePEPService;
 import puma.rmi.pdp.CentralPUMAPDPRemote;
 import puma.rmi.pdp.mgmt.CentralPUMAPDPMgmtRemote;
 
@@ -46,6 +54,8 @@ import com.sun.xacml.ctx.Result;
  * 
  */
 public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtRemote {
+
+	private static final int THRIFT_PORT = 9090;
 
 	private static final String CENTRAL_PUMA_PDP_RMI_NAME = "central-puma-pdp";
 
@@ -96,6 +106,13 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 		// if (System.getSecurityManager() == null) {
 		// System.setSecurityManager(new SecurityManager());
 		// }
+		CentralPUMAPDP pdp;
+		try {
+			pdp = new CentralPUMAPDP(policyHome);
+		} catch (IOException e) {
+			logger.log(Level.SEVERE, "FAILED to set up the CentralPUMAPDP. Quitting.", e);
+			return;
+		}
 
 		try {
 			Registry registry;
@@ -107,7 +124,6 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 				registry = LocateRegistry.getRegistry(RMI_REGISITRY_PORT);
 				logger.info("Reusing existing RMI registry");
 			}
-			CentralPUMAPDP pdp = new CentralPUMAPDP(policyHome);
 			CentralPUMAPDPRemote stub = (CentralPUMAPDPRemote) UnicastRemoteObject
 					.exportObject(pdp, 0);
 			registry.bind(CENTRAL_PUMA_PDP_RMI_NAME, stub);
@@ -116,6 +132,27 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 		} catch(Exception e) {
 			logger.log(Level.SEVERE, "FAILED to set up PDP as RMI server", e);
 		}
+		
+		//
+		// STARTUP THE THRIFT SERVER
+		//
+		// initialize log4j
+		BasicConfigurator.configure();
+		
+		// set up server
+		PEPServer handler = new PEPServer(new CentralPUMAPEP(pdp));
+		RemotePEPService.Processor<PEPServer> processor = new RemotePEPService.Processor<PEPServer>(handler);
+		TServerTransport serverTransport;
+		try {
+			serverTransport = new TServerSocket(THRIFT_PORT);
+		} catch (TTransportException e) {
+			e.printStackTrace();
+			return;
+		}
+		TServer server = new TSimpleServer(new TServer.Args(serverTransport).processor(processor));
+		
+		System.out.println("Setting up the Thrift server on port " + THRIFT_PORT);
+		server.serve();
 	}
 
 	private MultiPolicyPDP pdp;
