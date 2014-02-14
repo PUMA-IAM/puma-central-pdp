@@ -42,7 +42,7 @@ public class RemotePEPTest {
 		environment.addAttributeValue(new EnvironmentAttributeValue("system-load", 90));
 		
 		// 2. Then just ask the PEP for a decision
-		PEP pep = new RemotePEP();
+		PEP pep = new RemotePEP("puma-simac", 9090);
 		boolean authorized = pep.isAuthorized(subject, object, action, environment);
 		
 		// 3. Enforce the decision

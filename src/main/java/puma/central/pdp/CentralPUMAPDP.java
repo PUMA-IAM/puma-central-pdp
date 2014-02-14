@@ -73,6 +73,9 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 			.getName());
 
 	public static void main(String[] args) {
+		// initialize log4j
+		BasicConfigurator.configure();
+		
 		CommandLineParser parser = new BasicParser();
 		Options options = new Options();
 		options.addOption("ph", "policy-home", true,
@@ -127,7 +130,7 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 			CentralPUMAPDPRemote stub = (CentralPUMAPDPRemote) UnicastRemoteObject
 					.exportObject(pdp, 0);
 			registry.bind(CENTRAL_PUMA_PDP_RMI_NAME, stub);
-			logger.info("Central PUMA PDP up and running (available using RMI with name \"central-puma-pdp\")");
+			logger.info("Central PUMA PDP up and running (available using RMI with name \"central-puma-pdp\" on RMI registry port " + RMI_REGISITRY_PORT + ")");
 			Thread.sleep(100); // MDC: vroeger eindigde de Thread om één of andere reden, dit lijkt te werken...
 		} catch(Exception e) {
 			logger.log(Level.SEVERE, "FAILED to set up PDP as RMI server", e);
@@ -136,8 +139,7 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 		//
 		// STARTUP THE THRIFT SERVER
 		//
-		// initialize log4j
-		BasicConfigurator.configure();
+		logger.log(Level.INFO, "Not setting up the Thrift server");
 		
 		// set up server
 		PEPServer handler = new PEPServer(new CentralPUMAPEP(pdp));

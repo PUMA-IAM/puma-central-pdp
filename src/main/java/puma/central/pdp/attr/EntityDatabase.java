@@ -33,8 +33,8 @@ public class EntityDatabase {
 
 	private static final Logger logger = Logger.getLogger(EntityDatabase.class
 			.getName());
-	private static final String DB_USER = "admin";
-	private static final String DB_PASSWORD = "admin";
+	private static final String DB_USER = "root";
+	private static final String DB_PASSWORD = "root";
 	private static final String DB_CONNECTION = "jdbc:mysql://localhost:3306/puma-mgmt";
 
 	/**
