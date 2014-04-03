@@ -213,7 +213,7 @@ public class MultiPolicyPDP {
 			try {
 				policy = reader.readPolicy(stream);
 				policiesById.put(policy.getId().toString(), policy);
-				logger.info("Added " + policy.getId().toString());
+				logger.info("Added " + policy.getId().toString() + "");
 			} catch(ParsingException e) {
 				System.err.println("FAILED:");
 				e.printStackTrace();
