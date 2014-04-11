@@ -29,6 +29,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
 
+import puma.util.timing.TimerFactory;
+
+import com.codahale.metrics.Timer;
 import com.sun.xacml.EvaluationCtx;
 import com.sun.xacml.attr.AttributeDesignator;
 import com.sun.xacml.attr.AttributeValue;
@@ -83,6 +86,8 @@ public class LocalAttributeFinderModule extends AttributeFinderModule {
 	}
 
 	private EntityDatabase edb;
+	
+	private Timer databaseTimer = TimerFactory.getInstance().getTimer(getClass(), "database.fetch");
 
 	public LocalAttributeFinderModule(EntityDatabase edb) {
 		this.edb = edb;
@@ -250,8 +255,27 @@ public class LocalAttributeFinderModule extends AttributeFinderModule {
 			return new EvaluationResult(new BagAttribute(attributeType, values));
 		}
 	}
-
+	
+	/**
+	 * 
+	 */
 	public List<AttributeValue> getAttributeValue(String attributeId,
+			String entityId) {
+		Timer.Context timerCtx = databaseTimer.time();
+		List<AttributeValue> result = _getAttributeValue(attributeId, entityId);
+		timerCtx.stop();
+		return result;
+	}
+
+	/**
+	 * This is the actual getAttributeValue(). It is separated in order
+	 * to wrap it in timer code.
+	 * 
+	 * @param attributeId
+	 * @param entityId
+	 * @return
+	 */
+	public List<AttributeValue> _getAttributeValue(String attributeId,
 			String entityId) {
 		// FIXME if the attribute ids are not unique over the different tenants,
 		// we need

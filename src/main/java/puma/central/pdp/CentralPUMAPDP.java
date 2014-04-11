@@ -38,7 +38,12 @@ import puma.peputils.thrift.PEPServer;
 import puma.peputils.thrift.RemotePEPService;
 import puma.rmi.pdp.CentralPUMAPDPRemote;
 import puma.rmi.pdp.mgmt.CentralPUMAPDPMgmtRemote;
+import puma.util.timing.TimerFactory;
 
+import com.codahale.metrics.Timer;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import com.sun.xacml.ctx.CachedAttribute;
 import com.sun.xacml.ctx.ResponseCtx;
 import com.sun.xacml.ctx.Result;
@@ -79,9 +84,13 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 		CommandLineParser parser = new BasicParser();
 		Options options = new Options();
 		options.addOption("ph", "policy-home", true,
-				"The folder where to find the central puma policy file (called " + CENTRAL_PUMA_POLICY_FILENAME + ")");
+				"The folder where to find the policy file given with the given policy id. "
+				+ "For default operation, this folder should contain the central PUMA policy (called " + CENTRAL_PUMA_POLICY_FILENAME + ")");
+		options.addOption("pid", "policy-id", true,
+				"The id of the policy to be evaluated on decision requests. Default value: " + GLOBAL_PUMA_POLICY_ID + ")");
 		
 		String policyHome = "";
+		String policyId = "";
 
 		// read command line
 		try {
@@ -97,6 +106,12 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 				logger.log(Level.WARNING, "Incorrect arguments given.");
 				return;
 			}
+			if (line.hasOption("policy-id")) {
+				policyId = line.getOptionValue("policy-id");
+			} else {
+				logger.log(Level.INFO, "Using default policy id: " + GLOBAL_PUMA_POLICY_ID);
+				policyId = GLOBAL_PUMA_POLICY_ID;
+			}
 		} catch (ParseException e) {
 			logger.log(Level.WARNING, "Incorrect arguments given.", e);
 			return;
@@ -111,7 +126,7 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 		// }
 		CentralPUMAPDP pdp;
 		try {
-			pdp = new CentralPUMAPDP(policyHome);
+			pdp = new CentralPUMAPDP(policyHome, policyId);
 		} catch (IOException e) {
 			logger.log(Level.SEVERE, "FAILED to set up the CentralPUMAPDP. Quitting.", e);
 			return;
@@ -139,7 +154,7 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 		//
 		// STARTUP THE THRIFT SERVER
 		//
-		logger.log(Level.INFO, "Not setting up the Thrift server");
+		//logger.log(Level.INFO, "Not setting up the Thrift server");
 		
 		// set up server
 		PEPServer handler = new PEPServer(new CentralPUMAPEP(pdp));
@@ -159,18 +174,22 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 
 	private MultiPolicyPDP pdp;
 
-	public CentralPUMAPDP(String policyDir) throws IOException {
+	public CentralPUMAPDP(String policyDir, String policyId) throws IOException {
 		status = "NOT INITIALIZED";
 		initializePDP(policyDir);
+		this.policyId = policyId;
 	}
 
 	private String centralPUMAPolicyFilename;
 	private String globalPUMAPolicyFilename;
-	private String policyDir;
+	private String policyDir;	
+	private String policyId; // the id of the policy to be evaluated for access requests
 	
 	private List<String> identifiers;	// List of identifiers that have at least one policy running on the pdp
 
 	private String status;
+	
+	private Timer evaluateTimer = TimerFactory.getInstance().getTimer(getClass(), "centralpumapdp.evaluate");
 
 	/**
 	 * Initialize the application PDP by scanning all policy files in the given
@@ -286,13 +305,15 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 	 */
 	public ResponseCtx evaluate(RequestType request,
 			List<CachedAttribute> cachedAttributes) throws RemoteException {
+		Timer.Context timerCtx = evaluateTimer.time();
+		
 		String log = "Received policy request for Central PUMA PDP. Cached attributes:\n";
 		for(CachedAttribute a: cachedAttributes) {
 			log += a.getId() + " = " + a.getValue().toString() + "\n";
 		}
 		logger.info(log);
 		
-		ResponseCtx response = this.pdp.evaluate(GLOBAL_PUMA_POLICY_ID, request,
+		ResponseCtx response = this.pdp.evaluate(this.policyId, request,
 				cachedAttributes);
 
 		// print out some information
@@ -304,6 +325,8 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 					+ result.getObligations().size() + ") ";
 		}
 		logger.info(msg);
+		
+		timerCtx.stop();
 		
 		return response;
 	}
@@ -415,8 +438,20 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 	}
 
 	@Override
-	public List<String> getIdentifiers() throws RemoteException {
+	public List<String> getIdentifiers() {
 		return this.identifiers;
+	}
+
+	@Override
+	public String getMetrics() {
+		ObjectMapper mapper = new ObjectMapper();
+		ObjectWriter writer = mapper.writerWithDefaultPrettyPrinter();
+		try {
+			return writer.writeValueAsString(TimerFactory.getInstance().getMetricRegistry());
+		} catch (JsonProcessingException e) {
+			logger.log(Level.WARNING, "Exception on JSON encoding of metrics", e);
+			return "";
+		}
 	}
 
 }
