@@ -454,4 +454,9 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 		}
 	}
 
+	@Override
+	public void resetMetrics() throws RemoteException {
+		TimerFactory.getInstance().resetAllTimers();
+	}
+
 }
