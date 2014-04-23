@@ -189,7 +189,7 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 
 	private String status;
 	
-	private Timer evaluateTimer = TimerFactory.getInstance().getTimer(getClass(), "centralpumapdp.evaluate");
+	private static final String TIMER_NAME = "centralpumapdp.evaluate";
 
 	/**
 	 * Initialize the application PDP by scanning all policy files in the given
@@ -305,7 +305,7 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 	 */
 	public ResponseCtx evaluate(RequestType request,
 			List<CachedAttribute> cachedAttributes) throws RemoteException {
-		Timer.Context timerCtx = evaluateTimer.time();
+		Timer.Context timerCtx = TimerFactory.getInstance().getTimer(getClass(), TIMER_NAME).time();
 		
 		String log = "Received policy request for Central PUMA PDP. Cached attributes:\n";
 		for(CachedAttribute a: cachedAttributes) {

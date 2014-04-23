@@ -87,7 +87,7 @@ public class LocalAttributeFinderModule extends AttributeFinderModule {
 
 	private EntityDatabase edb;
 	
-	private Timer databaseTimer = TimerFactory.getInstance().getTimer(getClass(), "database.fetch");
+	private static final String TIMER_NAME = "database.fetch";
 
 	public LocalAttributeFinderModule(EntityDatabase edb) {
 		this.edb = edb;
@@ -261,7 +261,7 @@ public class LocalAttributeFinderModule extends AttributeFinderModule {
 	 */
 	public List<AttributeValue> getAttributeValue(String attributeId,
 			String entityId) {
-		Timer.Context timerCtx = databaseTimer.time();
+		Timer.Context timerCtx = TimerFactory.getInstance().getTimer(getClass(), TIMER_NAME).time();
 		List<AttributeValue> result = _getAttributeValue(attributeId, entityId);
 		timerCtx.stop();
 		return result;
