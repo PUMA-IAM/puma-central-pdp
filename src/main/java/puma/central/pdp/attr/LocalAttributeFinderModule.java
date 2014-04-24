@@ -31,6 +31,7 @@ import java.util.logging.Logger;
 
 import puma.util.timing.TimerFactory;
 
+import com.codahale.metrics.Counter;
 import com.codahale.metrics.Timer;
 import com.sun.xacml.EvaluationCtx;
 import com.sun.xacml.attr.AttributeDesignator;
@@ -88,6 +89,8 @@ public class LocalAttributeFinderModule extends AttributeFinderModule {
 	private EntityDatabase edb;
 	
 	private static final String TIMER_NAME = "database.fetch";
+
+	private static final String COUNTER_NAME = "database.fetch";
 
 	public LocalAttributeFinderModule(EntityDatabase edb) {
 		this.edb = edb;

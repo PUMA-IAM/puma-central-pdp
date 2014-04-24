@@ -152,8 +152,8 @@ public class MultiPolicyPDP {
 		EntityDatabase edb = EntityDatabase.getInstance();		
 		edb.open();
 		ResponseCtx response = getPDPForPolicy(policyId).evaluate(ctx);
-		edb.commit();
-		edb.close();
+		// DEBUG Support for obligations? edb.commit();
+		//edb.close();
 		return response;
 	}
 	

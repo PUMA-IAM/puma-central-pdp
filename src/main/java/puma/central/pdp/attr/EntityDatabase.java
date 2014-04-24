@@ -48,7 +48,7 @@ public class EntityDatabase {
 	 * DATABASE OPERATIONS
 	 */
 	
-	private Connection conn;
+	private static Connection conn = null;
 	
 	/**
 	 * Sets up the connection to the database in read/write mode. 
@@ -64,12 +64,15 @@ public class EntityDatabase {
 	 */
 	public void open(boolean readOnly) {
 		try {
-			Properties connectionProperties = new Properties();
-			connectionProperties.put("user", DB_USER);
-			connectionProperties.put("password", DB_PASSWORD);
-			conn = DriverManager.getConnection(DB_CONNECTION, connectionProperties);
-			conn.setReadOnly(readOnly);
-			conn.setAutoCommit(false);
+			if (conn == null || conn.isClosed()) {
+				Properties connectionProperties = new Properties();
+				connectionProperties.put("user", DB_USER);
+				connectionProperties.put("password", DB_PASSWORD);
+				conn = DriverManager.getConnection(DB_CONNECTION, connectionProperties);
+				conn.setReadOnly(readOnly);
+				conn.setAutoCommit(false);
+			} else
+				logger.log(Level.INFO, "Found connection " + conn.toString());
 		} catch (SQLException e) {
 			logger.log(Level.SEVERE, "Cannot open connection.", e);
 		}
