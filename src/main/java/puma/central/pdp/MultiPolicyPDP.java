@@ -111,6 +111,8 @@ public class MultiPolicyPDP {
 //		}
 //		policyFinder.setModules(policyFinderModules);
         allPoliciesModule.addPolicies(policiesById.values());
+        
+        EntityDatabase.getInstance().open(true);
 	}
 	
 	/**
@@ -149,11 +151,7 @@ public class MultiPolicyPDP {
 		// add the given cached attributes 
 		ctx.addAttributesToCache(cachedAttributes);
 		// evaluate
-		EntityDatabase edb = EntityDatabase.getInstance();		
-		edb.open();
 		ResponseCtx response = getPDPForPolicy(policyId).evaluate(ctx);
-		// DEBUG Support for obligations? edb.commit();
-		//edb.close();
 		return response;
 	}
 	

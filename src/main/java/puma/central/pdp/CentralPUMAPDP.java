@@ -14,7 +14,9 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Handler;
 import java.util.logging.Level;
+import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
 import oasis.names.tc.xacml._2_0.context.schema.os.RequestType;
@@ -59,6 +61,8 @@ import com.sun.xacml.ctx.Result;
  * 
  */
 public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtRemote {
+	
+	private static final Boolean LOG_ENABLED = false;
 
 	private static final int THRIFT_PORT = 9090;
 
@@ -88,7 +92,7 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 				+ "For default operation, this folder should contain the central PUMA policy (called " + CENTRAL_PUMA_POLICY_FILENAME + ")");
 		options.addOption("pid", "policy-id", true,
 				"The id of the policy to be evaluated on decision requests. Default value: " + GLOBAL_PUMA_POLICY_ID + ")");
-		
+		options.addOption("s", "log-disabled", true, "Verbose mode (true/false)");
 		String policyHome = "";
 		String policyId = "";
 
@@ -112,6 +116,9 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 				logger.log(Level.INFO, "Using default policy id: " + GLOBAL_PUMA_POLICY_ID);
 				policyId = GLOBAL_PUMA_POLICY_ID;
 			}
+			if (line.hasOption("log-disabled") && Boolean.parseBoolean(line.getOptionValue("log-disabled"))) {
+				LogManager.getLogManager().reset();
+			} 
 		} catch (ParseException e) {
 			logger.log(Level.WARNING, "Incorrect arguments given.", e);
 			return;

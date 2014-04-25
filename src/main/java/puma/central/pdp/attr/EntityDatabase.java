@@ -1,5 +1,6 @@
 package puma.central.pdp.attr;
 
+import java.beans.PropertyVetoException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -15,6 +16,8 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import com.mchange.v2.c3p0.ComboPooledDataSource;
 
 public class EntityDatabase {
 	
@@ -37,18 +40,32 @@ public class EntityDatabase {
 	private static final String DB_PASSWORD = "root";
 	private static final String DB_CONNECTION = "jdbc:mysql://localhost:3306/puma-mgmt";
 
+	
+	private static ComboPooledDataSource cpds;
 	/**
 	 * Initializes this new EntityDatabase. Does not open a connection yet.
 	 */
 	private EntityDatabase() {
-		
+		try {
+			cpds = new ComboPooledDataSource();
+			cpds.setDriverClass( "com.mysql.jdbc.Driver" );
+			cpds.setJdbcUrl( DB_CONNECTION );			
+			cpds.setMaxPoolSize(50);
+			cpds.setMinPoolSize(1);
+			cpds.setUser(DB_USER);
+			cpds.setPassword(DB_PASSWORD);
+		} catch (NullPointerException e) {
+			logger.log(Level.SEVERE, "Cannot open connection.", e);
+		} catch (PropertyVetoException e) {
+			logger.log(Level.SEVERE, "Cannot open connection.", e);
+		}
 	}
 
 	/**************************
 	 * DATABASE OPERATIONS
 	 */
 	
-	private static Connection conn = null;
+	private Connection conn = null;
 	
 	/**
 	 * Sets up the connection to the database in read/write mode. 
@@ -64,15 +81,9 @@ public class EntityDatabase {
 	 */
 	public void open(boolean readOnly) {
 		try {
-			if (conn == null || conn.isClosed()) {
-				Properties connectionProperties = new Properties();
-				connectionProperties.put("user", DB_USER);
-				connectionProperties.put("password", DB_PASSWORD);
-				conn = DriverManager.getConnection(DB_CONNECTION, connectionProperties);
-				conn.setReadOnly(readOnly);
-				conn.setAutoCommit(false);
-			} else
-				logger.log(Level.INFO, "Found connection " + conn.toString());
+			conn = cpds.getConnection();
+			conn.setReadOnly(readOnly);
+			conn.setAutoCommit(false);
 		} catch (SQLException e) {
 			logger.log(Level.SEVERE, "Cannot open connection.", e);
 		}
