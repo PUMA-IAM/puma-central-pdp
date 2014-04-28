@@ -14,7 +14,6 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
@@ -181,6 +180,10 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 
 	private MultiPolicyPDP pdp;
 
+	public CentralPUMAPDP(String policyDir) throws IOException {
+		this(policyDir, null);
+	}
+
 	public CentralPUMAPDP(String policyDir, String policyId) throws IOException {
 		status = "NOT INITIALIZED";
 		initializePDP(policyDir);
@@ -191,6 +194,10 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 	private String globalPUMAPolicyFilename;
 	private String policyDir;	
 	private String policyId; // the id of the policy to be evaluated for access requests
+	
+	public void setPolicyId(String policyId) {
+		this.policyId = policyId;
+	}
 	
 	private List<String> identifiers;	// List of identifiers that have at least one policy running on the pdp
 
