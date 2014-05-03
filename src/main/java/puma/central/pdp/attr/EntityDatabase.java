@@ -2,7 +2,6 @@ package puma.central.pdp.attr;
 
 import java.beans.PropertyVetoException;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -12,7 +11,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -36,8 +34,8 @@ public class EntityDatabase {
 
 	private static final Logger logger = Logger.getLogger(EntityDatabase.class
 			.getName());
-	private static final String DB_USER = "root";
-	private static final String DB_PASSWORD = "root";
+	private static final String DB_USER = "admin";
+	private static final String DB_PASSWORD = "admin";
 	private static final String DB_CONNECTION = "jdbc:mysql://localhost:3306/puma-mgmt";
 
 	
@@ -50,7 +48,7 @@ public class EntityDatabase {
 			cpds = new ComboPooledDataSource();
 			cpds.setDriverClass( "com.mysql.jdbc.Driver" );
 			cpds.setJdbcUrl( DB_CONNECTION );			
-			cpds.setMaxPoolSize(50);
+			cpds.setMaxPoolSize(30);
 			cpds.setMinPoolSize(1);
 			cpds.setUser(DB_USER);
 			cpds.setPassword(DB_PASSWORD);
@@ -84,6 +82,7 @@ public class EntityDatabase {
 			conn = cpds.getConnection();
 			conn.setReadOnly(readOnly);
 			conn.setAutoCommit(false);
+			conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
 		} catch (SQLException e) {
 			logger.log(Level.SEVERE, "Cannot open connection.", e);
 		}
@@ -190,14 +189,21 @@ public class EntityDatabase {
 	public Set<String> getStringAttribute(String entityId, String key) {
 		// QUESTION: Jasper @ Maarten: ik neem wederom aan dat het hier gaat om de xacmlIdentifier als er een key wordt doorgegeven?
 		try {
-			PreparedStatement getAttributePS = conn.prepareStatement("SELECT value FROM SP_ATTR WHERE user_id=? AND family_id=?");
-			getAttributePS.setLong(1, Long.valueOf(entityId));
-			getAttributePS.setLong(2, getFamilyId(key));
-			ResultSet result = getAttributePS.executeQuery();
+			Long familyId = getFamilyId(key);
+			logger.info("Fetching attribute with family id [" + familyId + "] and user id [" + entityId + "]...");
+			String query = "SELECT value FROM SP_ATTR WHERE family_id=? AND user_id=?";
+			PreparedStatement stmt;
+				stmt = this.conn.prepareStatement(query);
+			stmt.setLong(1, familyId);
+			stmt.setLong(2, Long.valueOf(entityId));
+			ResultSet queryResult = stmt.executeQuery();
+			
 			// process the result
 			Set<String> r = new HashSet<String>();
-			while (result.next()) {
-				r.add(result.getString("value"));
+			String next;
+			while (queryResult.next()) {
+				next = queryResult.getString("value");
+				r.add(next);
 			}
 			return r;
 		} catch (SQLException e) {

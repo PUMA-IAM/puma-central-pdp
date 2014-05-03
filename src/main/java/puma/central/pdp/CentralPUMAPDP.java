@@ -61,8 +61,6 @@ import com.sun.xacml.ctx.Result;
  */
 public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtRemote {
 	
-	private static final Boolean LOG_ENABLED = false;
-
 	private static final int THRIFT_PORT = 9090;
 
 	private static final String CENTRAL_PUMA_PDP_RMI_NAME = "central-puma-pdp";
@@ -70,8 +68,6 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 	private static final String CENTRAL_PUMA_POLICY_FILENAME = "central-puma-policy.xml";
 	
 	private static final String GLOBAL_PUMA_POLICY_FILENAME = "global-puma-policy.xml";
-	
-	private static final String GLOBAL_PUMA_PDP_RMI_NAME = "global-puma-pdp";
 	
 	private static final String GLOBAL_PUMA_POLICY_ID = "global-puma-policy";
 
@@ -109,15 +105,16 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 				logger.log(Level.WARNING, "Incorrect arguments given.");
 				return;
 			}
+			if (line.hasOption("log-disabled") && Boolean.parseBoolean(line.getOptionValue("log-disabled"))) {
+				logger.log(Level.INFO, "Now switching to silent mode");
+				LogManager.getLogManager().reset();
+			} 
 			if (line.hasOption("policy-id")) {
 				policyId = line.getOptionValue("policy-id");
 			} else {
 				logger.log(Level.INFO, "Using default policy id: " + GLOBAL_PUMA_POLICY_ID);
 				policyId = GLOBAL_PUMA_POLICY_ID;
 			}
-			if (line.hasOption("log-disabled") && Boolean.parseBoolean(line.getOptionValue("log-disabled"))) {
-				LogManager.getLogManager().reset();
-			} 
 		} catch (ParseException e) {
 			logger.log(Level.WARNING, "Incorrect arguments given.", e);
 			return;

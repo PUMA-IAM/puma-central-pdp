@@ -285,7 +285,7 @@ public class LocalAttributeFinderModule extends AttributeFinderModule {
 		// to provide the entityId as well to first provide the organization
 		// owning the attribute family
 		DataType dt = this.edb.getDataType(attributeId);
-
+		
 		List<AttributeValue> result = new ArrayList<AttributeValue>();
 		if (dt == DataType.String) {
 			Collection<String> values = edb.getStringAttribute(entityId,

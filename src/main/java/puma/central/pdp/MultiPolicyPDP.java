@@ -207,14 +207,13 @@ public class MultiPolicyPDP {
 			policyFinder.setModules(modules);		
 			
 			PolicyReader reader = new PolicyReader(policyFinder);
-			AbstractPolicy policy;
+			AbstractPolicy policy = null;
 			try {
 				policy = reader.readPolicy(stream);
 				policiesById.put(policy.getId().toString(), policy);
 				logger.info("Added " + policy.getId().toString() + "");
 			} catch(ParsingException e) {
-				System.err.println("FAILED:");
-				e.printStackTrace();
+				logger.log(Level.SEVERE, "Could not parse policy", e);
 				return;
 			}
 		}		
