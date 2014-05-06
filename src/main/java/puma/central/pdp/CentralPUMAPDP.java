@@ -18,7 +18,13 @@ import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
+import oasis.names.tc.xacml._2_0.context.schema.os.ActionType;
+import oasis.names.tc.xacml._2_0.context.schema.os.AttributeType;
+import oasis.names.tc.xacml._2_0.context.schema.os.AttributeValueType;
+import oasis.names.tc.xacml._2_0.context.schema.os.EnvironmentType;
 import oasis.names.tc.xacml._2_0.context.schema.os.RequestType;
+import oasis.names.tc.xacml._2_0.context.schema.os.ResourceType;
+import oasis.names.tc.xacml._2_0.context.schema.os.SubjectType;
 
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
@@ -45,6 +51,8 @@ import com.codahale.metrics.Timer;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import com.sun.xacml.EvaluationCtx;
+import com.sun.xacml.attr.StringAttribute;
 import com.sun.xacml.ctx.CachedAttribute;
 import com.sun.xacml.ctx.ResponseCtx;
 import com.sun.xacml.ctx.Result;
@@ -107,7 +115,8 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 			}
 			if (line.hasOption("log-disabled") && Boolean.parseBoolean(line.getOptionValue("log-disabled"))) {
 				logger.log(Level.INFO, "Now switching to silent mode");
-				LogManager.getLogManager().reset();
+				LogManager.getLogManager().getLogger("").setLevel(Level.WARNING);
+				//LogManager.getLogManager().reset();
 			} 
 			if (line.hasOption("policy-id")) {
 				policyId = line.getOptionValue("policy-id");
@@ -317,12 +326,16 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 	public ResponseCtx evaluate(RequestType request,
 			List<CachedAttribute> cachedAttributes) throws RemoteException {
 		Timer.Context timerCtx = TimerFactory.getInstance().getTimer(getClass(), TIMER_NAME).time();
+		if (request == null)
+			request = defaultRequest();
 		
-		String log = "Received policy request for Central PUMA PDP. Cached attributes:\n";
-		for(CachedAttribute a: cachedAttributes) {
-			log += a.getId() + " = " + a.getValue().toString() + "\n";
+		if (isLoggingAll()) {
+			String log = "Received policy request for Central PUMA PDP. Cached attributes:\n";
+			for(CachedAttribute a: cachedAttributes) {
+				log += a.getId() + " = " + a.getValue().toString() + "\n";
+			}
+			logger.info(log);
 		}
-		logger.info(log);
 		
 		ResponseCtx response = this.pdp.evaluate(this.policyId, request,
 				cachedAttributes);
@@ -340,6 +353,59 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 		timerCtx.stop();
 		
 		return response;
+	}
+	
+	private RequestType defaultRequest() {
+		SubjectType xacmlSubject = new SubjectType();
+		AttributeType subjectId = new AttributeType();
+		subjectId.setAttributeId("subject:id-which-should-never-be-needed");
+		subjectId.setDataType(StringAttribute.identifier);
+		AttributeValueType subjectIdValue = new AttributeValueType();
+		// subjectIdValue.getContent().add(subject.getId());
+		subjectIdValue.getContent().add(
+				"THE-SUBJECT-ID-IN-THE-REQUEST-WHICH-SHOULD-NEVER-BE-NEEDED");
+		subjectId.getAttributeValue().add(subjectIdValue);
+		xacmlSubject.getAttribute().add(subjectId);
+
+		ResourceType xacmlObject = new ResourceType();
+		AttributeType objectId = new AttributeType();
+		objectId.setAttributeId(EvaluationCtx.RESOURCE_ID); // this should be
+															// the official id
+															// apparently
+		objectId.setDataType(StringAttribute.identifier);
+		AttributeValueType objectIdValue = new AttributeValueType();
+		// objectIdValue.getContent().add(object.getId());
+		objectIdValue.getContent().add(
+				"THE-OBJECT-ID-IN-THE-REQUEST-WHICH-SHOULD-NEVER-BE-NEEDED");
+		objectId.getAttributeValue().add(objectIdValue);
+		xacmlObject.getAttribute().add(objectId);
+
+		ActionType xacmlAction = new ActionType();
+		AttributeType actionId = new AttributeType();
+		actionId.setAttributeId("action:id-which-should-never-be-needed");
+		actionId.setDataType(StringAttribute.identifier);
+		AttributeValueType actionIdValue = new AttributeValueType();
+		// actionIdValue.getContent().add(action.getId());
+		actionIdValue.getContent().add(
+				"THE-ACTION-ID-IN-THE-REQUEST-WHICH-SHOULD-NEVER-BE-NEEDED");
+		actionId.getAttributeValue().add(actionIdValue);
+		xacmlAction.getAttribute().add(actionId);
+
+		EnvironmentType xacmlEnvironment = new EnvironmentType(); // empty in
+																	// the
+																	// request
+
+		RequestType xacmlRequest = new RequestType();
+		xacmlRequest.getSubject().add(xacmlSubject);
+		xacmlRequest.getResource().add(xacmlObject);
+		xacmlRequest.setAction(xacmlAction);
+		xacmlRequest.setEnvironment(xacmlEnvironment);
+
+		return xacmlRequest;
+	}
+
+	private Boolean isLoggingAll() {
+		return !LogManager.getLogManager().getLogger("").getLevel().equals(Level.WARNING);
 	}
 
 	/***********************
@@ -468,6 +534,11 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 	@Override
 	public void resetMetrics() throws RemoteException {
 		TimerFactory.getInstance().resetAllTimers();
+	}
+
+	@Override
+	public boolean ping() throws RemoteException {
+		return true;
 	}
 
 }
