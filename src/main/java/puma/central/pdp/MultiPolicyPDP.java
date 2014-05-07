@@ -16,8 +16,8 @@ import mdc.xacml.impl.DefaultAttributeCounter;
 import mdc.xacml.impl.HardcodedEnvironmentAttributeModule;
 import mdc.xacml.impl.SimplePolicyFinderModule;
 import oasis.names.tc.xacml._2_0.context.schema.os.RequestType;
-import puma.central.pdp.attr.EntityDatabase;
-import puma.central.pdp.attr.LocalAttributeFinderModule;
+import puma.piputils.EntityDatabase;
+import puma.piputils.QueryAttributeFinderModule;
 
 import com.sun.xacml.AbstractPolicy;
 import com.sun.xacml.BasicEvaluationCtx;
@@ -89,7 +89,7 @@ public class MultiPolicyPDP {
         // 2. selector module for access to request 
         //SelectorModule selectorAttributeModule = new SelectorModule();
         // 3. our own attribute finder module
-        LocalAttributeFinderModule localAttributeFinderModule = new LocalAttributeFinderModule();
+        QueryAttributeFinderModule localAttributeFinderModule = new QueryAttributeFinderModule();
         // 5. Put everything in an attribute finder
         attributeFinder = new AttributeFinder();
         List<AttributeFinderModule> attributeModules = new ArrayList<AttributeFinderModule>();
