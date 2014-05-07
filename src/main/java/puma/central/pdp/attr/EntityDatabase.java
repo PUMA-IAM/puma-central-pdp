@@ -88,9 +88,9 @@ public class EntityDatabase {
 			conn.setReadOnly(readOnly);
 			conn.setAutoCommit(false);
 			conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
-			getStringAttributeStmt = this.conn.prepareStatement("SELECT value FROM SP_ATTR WHERE family_id=? AND user_id=?");
-			getDataTypeStmt = this.conn.prepareStatement("SELECT dataType FROM SP_ATTRTYPE WHERE xacmlIdentifier=?");			
-			getFamilyIdStmt = this.conn.prepareStatement("SELECT id FROM SP_ATTRTYPE WHERE xacmlIdentifier=?");
+			getStringAttributeStmt = this.conn.prepareStatement("SELECT SP_ATTR.value FROM SP_ATTRTYPE USE INDEX (familyById) INNER JOIN SP_ATTR ON SP_ATTR.family_id=SP_ATTRTYPE.id AND SP_ATTRTYPE.xacmlIdentifier=? and SP_ATTR.user_id=?");
+			getDataTypeStmt = this.conn.prepareStatement("SELECT dataType FROM SP_ATTRTYPE USE INDEX (familyById) WHERE xacmlIdentifier=?");			
+			getFamilyIdStmt = this.conn.prepareStatement("SELECT id FROM SP_ATTRTYPE USE INDEX (familyById) WHERE xacmlIdentifier=?");
 			getSupportedXACMLAttributeIdsStmt = this.conn.prepareStatement("SELECT xacmlIdentifier FROM SP_ATTRTYPE");
 		} catch (SQLException e) {
 			logger.log(Level.SEVERE, "Cannot open connection.", e);
@@ -207,40 +207,6 @@ public class EntityDatabase {
 								// niet goed genoeg...
 	}
 
-	private Long getFamilyId(String xacmlIdentifier) {
-		List<Long> result = new ArrayList<Long>();
-		ResultSet queryResult = null;
-		try {
-			getFamilyIdStmt.setString(1, xacmlIdentifier);
-			queryResult = getFamilyIdStmt.executeQuery();
-			while (queryResult.next()) {
-				result.add(queryResult.getLong("id"));
-			}
-			if (!result.isEmpty()) {
-				if (result.size() > 1)
-					logger.warning("Multiple xacml identifiers: "
-							+ xacmlIdentifier
-							+ ". Fetching random family and hoping for the best.");
-				Long id = result.get(0);
-				return id;
-			}
-		} catch (SQLException e) {
-			logger.log(Level.SEVERE,
-					"Could not fetch xacml attribute identifiers", e);
-		} catch (NumberFormatException e) {
-			logger.log(Level.SEVERE, "Illegal family id found in database", e);
-		} finally {
-			if(queryResult != null) {
-				try {
-					queryResult.close();
-				} catch (SQLException e) {
-					// nothing to do
-					e.printStackTrace();
-				}
-			}
-		}
-		return null;
-	}
 
 	/**
 	 * Fetches a string attribute from the database using the connection of this
@@ -251,10 +217,9 @@ public class EntityDatabase {
 		// de xacmlIdentifier als er een key wordt doorgegeven?
 		ResultSet queryResult = null;
 		try {
-			Long familyId = getFamilyId(key);
-			logger.info("Fetching attribute with family id [" + familyId
+			logger.info("Fetching attribute with family [" + key
 					+ "] and user id [" + entityId + "]...");
-			getStringAttributeStmt.setLong(1, familyId);
+			getStringAttributeStmt.setString(1, key);
 			getStringAttributeStmt.setLong(2, Long.valueOf(entityId));
 			queryResult = getStringAttributeStmt.executeQuery();
 
