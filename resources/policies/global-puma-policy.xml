@@ -6,5 +6,13 @@ PolicySetId="global-puma-policy"
 PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:deny-overrides">
 <Description>The global access control policy</Description>
 <PolicySetIdReference>central-puma-policy</PolicySetIdReference>
-<PolicySetIdReference>urn:xacml:2.0:puma:tenantsetid:2</PolicySetIdReference>
+<PolicySetIdReference>urn:xacml:2.0:puma:tenantsetid:56</PolicySetIdReference>
+<PolicySetIdReference>urn:xacml:2.0:puma:tenantsetid:60</PolicySetIdReference>
+<PolicySetIdReference>urn:xacml:2.0:puma:tenantsetid:58</PolicySetIdReference>
+<PolicySetIdReference>urn:xacml:2.0:puma:tenantsetid:68</PolicySetIdReference>
+<PolicySetIdReference>urn:xacml:2.0:puma:tenantsetid:54</PolicySetIdReference>
+<PolicySetIdReference>urn:xacml:2.0:puma:tenantsetid:62</PolicySetIdReference>
+<PolicySetIdReference>urn:xacml:2.0:puma:tenantsetid:66</PolicySetIdReference>
+<PolicySetIdReference>urn:xacml:2.0:puma:tenantsetid:64</PolicySetIdReference>
+<PolicySetIdReference>urn:xacml:2.0:puma:tenantsetid:70</PolicySetIdReference>
 </PolicySet>

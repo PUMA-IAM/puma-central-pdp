@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
+import java.net.InetSocketAddress;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -14,6 +15,7 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
@@ -47,7 +49,10 @@ import puma.rmi.pdp.CentralPUMAPDPRemote;
 import puma.rmi.pdp.mgmt.CentralPUMAPDPMgmtRemote;
 import puma.util.timing.TimerFactory;
 
+import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.Timer;
+import com.codahale.metrics.graphite.Graphite;
+import com.codahale.metrics.graphite.GraphiteReporter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
@@ -179,11 +184,9 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 			return;
 		}
 		TServer server = new TSimpleServer(new TServer.Args(serverTransport).processor(processor));
-		
 		System.out.println("Setting up the Thrift server on port " + THRIFT_PORT);
 		server.serve();
 	}
-
 	private MultiPolicyPDP pdp;
 
 	public CentralPUMAPDP(String policyDir) throws IOException {
@@ -530,10 +533,25 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 			return "";
 		}
 	}
+	
+	GraphiteReporter reporter = null;
 
 	@Override
 	public void resetMetrics() throws RemoteException {
 		TimerFactory.getInstance().resetAllTimers();
+		
+		// connect metrics to the Graphite server
+		if(reporter != null) {
+			reporter.stop();
+		}
+		final Graphite graphite = new Graphite(new InetSocketAddress("172.16.4.2", 2003));
+		reporter = GraphiteReporter.forRegistry(TimerFactory.getInstance().getMetricRegistry())
+		                                                  .prefixedWith("puma-central-pdp")
+		                                                  .convertRatesTo(TimeUnit.SECONDS)
+		                                                  .convertDurationsTo(TimeUnit.MILLISECONDS)
+		                                                  .filter(MetricFilter.ALL)
+		                                                  .build(graphite);
+		reporter.start(10, TimeUnit.SECONDS);
 	}
 
 	@Override

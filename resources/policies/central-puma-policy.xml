@@ -1,59 +1,564 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <PolicySet  xmlns="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
             xsi:schemaLocation="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
             PolicySetId="central-puma-policy" 
-            PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:permit-overrides">
-	<Description>The policy for showing tabs.</Description>
-	<Target>
-		<Resources>
-			<Resource>
-				<ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
-				    <AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">tab</AttributeValue>
-					<ResourceAttributeDesignator AttributeId="object:type" DataType="http://www.w3.org/2001/XMLSchema#string"/>
-				</ResourceMatch>
-			</Resource>
-		</Resources>
-	</Target>
-  <Policy xmlns="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
-          xmlns:xacml-context="urn:oasis:names:tc:xacml:2.0:context:schema:os" 
-          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-          xsi:schemaLocation="urn:oasis:names:tc:xacml:2.0:policy:schema:os http://docs.oasis-open.org/xacml/access_control-xacml-2.0-policy-schema-os.xsd" 
-          xmlns:md="urn:mdc:xacml" 
-          PolicyId="policy:1" 
-          RuleCombiningAlgId="urn:oasis:names:tc:xacml:1.0:rule-combining-algorithm:deny-overrides">
-    <Description>Dispatchers can show the Chat tab</Description>
+            PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:deny-overrides">
+	<Description>Description</Description>
+	<Target></Target>
+  <!-- begin members of Provider -->
+  <PolicySet  xmlns="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+              xsi:schemaLocation="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
+              PolicySetId="policyset:members-of-provider" 
+              PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable">
+	  <Description>The policies for members of the provider</Description>
     <Target>
-	    <Subjects>
-		    <Subject>
-			    <SubjectMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
-			      <AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">Dispatcher</AttributeValue>
-				    <SubjectAttributeDesignator AttributeId="subject:roles" DataType="http://www.w3.org/2001/XMLSchema#string"/>
-			    </SubjectMatch>
-		    </Subject>
-	    </Subjects>
-	    <Resource>
-		    <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
-		        <AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">chat</AttributeValue>
-			    <ResourceAttributeDesignator AttributeId="object:tab_type" DataType="http://www.w3.org/2001/XMLSchema#string"/>
-		    </ResourceMatch>
-	    </Resource>
+      <Subjects>
+	      <Subject>
+		      <SubjectMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+		        <AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">provider</AttributeValue>
+			      <SubjectAttributeDesignator AttributeId="subject:tenant-name" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+		      </SubjectMatch>
+	      </Subject>
+      </Subjects>
     </Target>
-    <Rule RuleId="rule:1" Effect="Permit">
-	    <Description>This is just the single rule for the above policy.</Description>
-    </Rule>
-  </Policy>
-  <Policy xmlns="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
-          xmlns:xacml-context="urn:oasis:names:tc:xacml:2.0:context:schema:os" 
-          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-          xsi:schemaLocation="urn:oasis:names:tc:xacml:2.0:policy:schema:os http://docs.oasis-open.org/xacml/access_control-xacml-2.0-policy-schema-os.xsd" 
-          xmlns:md="urn:mdc:xacml" 
-          PolicyId="policy:default-permit:1" 
-          RuleCombiningAlgId="urn:oasis:names:tc:xacml:1.0:rule-combining-algorithm:deny-overrides">
-    <Description>Default deny.</Description>
-    <Target></Target>
-    <Rule RuleId="rule:default-permit:1" Effect="Deny">
-      <Description>This is just the single rule for the above policy.</Description>
-    </Rule>
-  </Policy>
+    <!-- begin confidential documents -->  
+    <Policy xmlns="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
+            xmlns:xacml-context="urn:oasis:names:tc:xacml:2.0:context:schema:os" 
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+            xsi:schemaLocation="urn:oasis:names:tc:xacml:2.0:policy:schema:os http://docs.oasis-open.org/xacml/access_control-xacml-2.0-policy-schema-os.xsd" 
+            xmlns:md="urn:mdc:xacml" 
+            PolicyId="policy:1" 
+            RuleCombiningAlgId="urn:oasis:names:tc:xacml:1.0:rule-combining-algorithm:deny-overrides">
+      <Description>No member of the Provider can read a document labeled confidential.</Description>
+      <Target>
+	      <Actions>
+		      <Action>
+			      <ActionMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+			        <AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">view</AttributeValue>
+				      <ActionAttributeDesignator AttributeId="action:id" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+			      </ActionMatch>
+		      </Action>
+	      </Actions>
+	      <Resources>
+		      <Resource>
+			      <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+			          <AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">document</AttributeValue>
+				      <ResourceAttributeDesignator AttributeId="object:type" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+			      </ResourceMatch>
+		      </Resource>
+	      </Resources>
+      </Target>
+      <Rule RuleId="rule:1" Effect="Deny">
+        <Description>This is just the single rule for the above policy.</Description>
+        <Condition>
+          <Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:boolean-one-and-only">
+            <ResourceAttributeDesignator AttributeId="object:confidential" DataType="http://www.w3.org/2001/XMLSchema#boolean"/>
+          </Apply>
+        </Condition>
+      </Rule>
+    </Policy>  
+    <!-- end confidential documents -->  
+    <!-- begin members of the helpdesk -->  
+    <PolicySet  xmlns="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
+                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+                xsi:schemaLocation="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
+                PolicySetId="policyset:2" 
+                PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable">
+	    <Description>The policies for members of the helpdesk</Description>
+      <Target>
+        <Subjects>
+	        <Subject>
+		        <SubjectMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+		          <AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">helpdesk</AttributeValue>
+			        <SubjectAttributeDesignator AttributeId="subject:role" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+		        </SubjectMatch>
+	        </Subject>
+        </Subjects>
+      </Target>
+      <Policy xmlns="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
+              xmlns:xacml-context="urn:oasis:names:tc:xacml:2.0:context:schema:os" 
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+              xsi:schemaLocation="urn:oasis:names:tc:xacml:2.0:policy:schema:os http://docs.oasis-open.org/xacml/access_control-xacml-2.0-policy-schema-os.xsd" 
+              xmlns:md="urn:mdc:xacml" 
+              PolicyId="policy:2" 
+              RuleCombiningAlgId="urn:oasis:names:tc:xacml:1.0:rule-combining-algorithm:deny-overrides">
+        <Description>Members of the helpdesk can view the metadata of every document in the application.</Description>
+        <Target>
+		      <Actions>
+			      <Action>
+				      <ActionMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+				        <AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">view</AttributeValue>
+					      <ActionAttributeDesignator AttributeId="action:id" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+				      </ActionMatch>
+			      </Action>
+		      </Actions>
+		      <Resources>
+			      <Resource>
+				      <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+				        <AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">document_metadata</AttributeValue>
+					      <ResourceAttributeDesignator AttributeId="object:type" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+				      </ResourceMatch>
+			      </Resource>
+		      </Resources>
+        </Target>
+        <Rule RuleId="rule:1" Effect="Permit">
+	        <Description>This is just the single rule for the above policy.</Description>
+        </Rule>
+      </Policy>
+      <Policy xmlns="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
+              xmlns:xacml-context="urn:oasis:names:tc:xacml:2.0:context:schema:os" 
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+              xsi:schemaLocation="urn:oasis:names:tc:xacml:2.0:policy:schema:os http://docs.oasis-open.org/xacml/access_control-xacml-2.0-policy-schema-os.xsd" 
+              xmlns:md="urn:mdc:xacml" 
+              PolicyId="policy:3" 
+              RuleCombiningAlgId="urn:oasis:names:tc:xacml:1.0:rule-combining-algorithm:permit-overrides">
+        <Description>Members of the helpdesk can only view the contents of document belonging to tenants for which they are assigned responsible.</Description>
+        <Target>
+		      <Actions>
+			      <Action>
+				      <ActionMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+				        <AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">view</AttributeValue>
+					      <ActionAttributeDesignator AttributeId="action:id" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+				      </ActionMatch>
+			      </Action>
+		      </Actions>
+		      <Resources>
+			      <Resource>
+				      <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+				        <AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">document</AttributeValue>
+					      <ResourceAttributeDesignator AttributeId="object:type" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+				      </ResourceMatch>
+			      </Resource>
+		      </Resources>
+        </Target>
+        <Rule RuleId="rule:21" Effect="Permit">
+          <Description>This is just the single rule for the above policy.</Description>
+          <Condition>
+            <Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:string-is-in">
+              <Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:string-one-and-only">
+                <ResourceAttributeDesignator AttributeId="object:owning_tenant" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+              </Apply>
+              <SubjectAttributeDesignator AttributeId="subject:assigned_tenants" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+            </Apply>
+          </Condition>
+        </Rule>
+        <Rule RuleId="rule:1" Effect="Deny">
+	        <Description>This is just the single rule for the above policy.</Description>
+        </Rule>
+      </Policy>
+      <!-- TODO conflicts? -->
+      <Policy xmlns="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
+              xmlns:xacml-context="urn:oasis:names:tc:xacml:2.0:context:schema:os" 
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+              xsi:schemaLocation="urn:oasis:names:tc:xacml:2.0:policy:schema:os http://docs.oasis-open.org/xacml/access_control-xacml-2.0-policy-schema-os.xsd" 
+              xmlns:md="urn:mdc:xacml" 
+              PolicyId="policy:4" 
+              RuleCombiningAlgId="urn:oasis:names:tc:xacml:1.0:rule-combining-algorithm:deny-overrides">
+        <Description>Default deny.</Description>
+        <Target></Target>
+        <Rule RuleId="rule:6" Effect="Permit">
+          <Description>This is just the single rule for the above policy.</Description>
+        </Rule>
+      </Policy>
+    </PolicySet>
+    <!-- end members of helpdesk -->
+    <!-- begin application admins -->  
+    <PolicySet  xmlns="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
+                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+                xsi:schemaLocation="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
+                PolicySetId="policyset:3" 
+                PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:first-applicable">
+	    <Description>The policies for application admins</Description>
+      <Target>
+        <Subjects>
+	        <Subject>
+		        <SubjectMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+		          <AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">admin</AttributeValue>
+			        <SubjectAttributeDesignator AttributeId="subject:role" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+		        </SubjectMatch>
+	        </Subject>
+        </Subjects>
+      </Target>
+      <Policy xmlns="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
+              xmlns:xacml-context="urn:oasis:names:tc:xacml:2.0:context:schema:os" 
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+              xsi:schemaLocation="urn:oasis:names:tc:xacml:2.0:policy:schema:os http://docs.oasis-open.org/xacml/access_control-xacml-2.0-policy-schema-os.xsd" 
+              xmlns:md="urn:mdc:xacml" 
+              PolicyId="policy:5" 
+              RuleCombiningAlgId="urn:oasis:names:tc:xacml:1.0:rule-combining-algorithm:deny-overrides">
+        <Description>Admins can create new tenants.</Description>
+        <Target>
+		      <Actions>
+			      <Action>
+				      <ActionMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+				        <AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">create</AttributeValue>
+					      <ActionAttributeDesignator AttributeId="action:id" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+				      </ActionMatch>
+			      </Action>
+		      </Actions>
+		      <Resources>
+			      <Resource>
+				      <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+				          <AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">tenant</AttributeValue>
+					      <ResourceAttributeDesignator AttributeId="object:type" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+				      </ResourceMatch>
+			      </Resource>
+		      </Resources>
+        </Target>
+        <Rule RuleId="rule:1" Effect="Permit">
+	        <Description>This is just the single rule for the above policy.</Description>
+        </Rule>
+      </Policy>
+      <!-- TODO conflicts? -->
+      <Policy xmlns="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
+              xmlns:xacml-context="urn:oasis:names:tc:xacml:2.0:context:schema:os" 
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+              xsi:schemaLocation="urn:oasis:names:tc:xacml:2.0:policy:schema:os http://docs.oasis-open.org/xacml/access_control-xacml-2.0-policy-schema-os.xsd" 
+              xmlns:md="urn:mdc:xacml" 
+              PolicyId="policy:6" 
+              RuleCombiningAlgId="urn:oasis:names:tc:xacml:1.0:rule-combining-algorithm:deny-overrides">
+        <Description>Default deny.</Description>
+        <Target></Target>
+        <Rule RuleId="rule:6" Effect="Deny">
+          <Description>This is just the single rule for the above policy.</Description>
+        </Rule>
+      </Policy>
+    </PolicySet>
+    <!-- end application admins -->
+  </PolicySet>
+  <!-- end members of Provider -->
+  <!-- begin Unregistered Receivers -->
+  <PolicySet  xmlns="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+              xsi:schemaLocation="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
+              PolicySetId="policyset:4" 
+              PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:deny-overrides">
+	  <Description>The policies for Unregistered Receivers</Description>
+    <Target>
+      <Subjects>
+	      <Subject>
+		      <SubjectMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+		        <AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">unregistered_receiver</AttributeValue>
+			      <SubjectAttributeDesignator AttributeId="subject:role" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+		      </SubjectMatch>
+	      </Subject>
+      </Subjects>
+    </Target>
+	  <Policy xmlns="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
+            xmlns:xacml-context="urn:oasis:names:tc:xacml:2.0:context:schema:os" 
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+            xsi:schemaLocation="urn:oasis:names:tc:xacml:2.0:policy:schema:os http://docs.oasis-open.org/xacml/access_control-xacml-2.0-policy-schema-os.xsd" 
+            xmlns:md="urn:mdc:xacml" 
+            PolicyId="policy:7" 
+            RuleCombiningAlgId="urn:oasis:names:tc:xacml:1.0:rule-combining-algorithm:permit-overrides">
+	    <Description>Unregistered Receivers can only view stuff and can only view documents and document metadata.</Description>
+      <Target></Target>
+	    <Rule RuleId="rule:1" Effect="Permit">
+		    <Description>This is just the single rule for the above policy.</Description>
+        <Target>
+		      <Actions>
+			      <Action>
+				      <ActionMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+				        <AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">view</AttributeValue>
+					      <ActionAttributeDesignator AttributeId="action:id" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+				      </ActionMatch>
+			      </Action>
+		      </Actions>
+		      <Resources>
+			      <Resource>
+				      <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+				        <AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">document</AttributeValue>
+					      <ResourceAttributeDesignator AttributeId="object:type" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+				      </ResourceMatch>
+			      </Resource>
+		      </Resources>
+        </Target>
+	    </Rule>
+      <Rule RuleId="rule:6" Effect="Deny">
+        <Description>This is just the single rule for the above policy.</Description>
+      </Rule>
+    </Policy>
+	  <Policy xmlns="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
+            xmlns:xacml-context="urn:oasis:names:tc:xacml:2.0:context:schema:os" 
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+            xsi:schemaLocation="urn:oasis:names:tc:xacml:2.0:policy:schema:os http://docs.oasis-open.org/xacml/access_control-xacml-2.0-policy-schema-os.xsd" 
+            xmlns:md="urn:mdc:xacml" 
+            PolicyId="policy:8" 
+            RuleCombiningAlgId="urn:oasis:names:tc:xacml:1.0:rule-combining-algorithm:deny-overrides">
+	    <Description>A Unregistered Receiver can only view documents sent to him/herself.</Description>
+	    <Target>
+		    <Actions>
+			    <Action>
+				    <ActionMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+				      <AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">view</AttributeValue>
+					    <ActionAttributeDesignator AttributeId="action:id" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+				    </ActionMatch>
+			    </Action>
+		    </Actions>
+	    </Target>
+	    <Rule RuleId="rule:1" Effect="Deny">
+		    <Description>This is just the single rule for the above policy.</Description>
+		    <Condition>
+	        <Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:not">
+	          <Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+              <Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:string-one-and-only">
+                <ResourceAttributeDesignator AttributeId="object:destination" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+              </Apply>
+              <Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:string-one-and-only">
+                <SubjectAttributeDesignator AttributeId="subject:id" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+              </Apply>
+	          </Apply>
+          </Apply>          
+		    </Condition>
+	    </Rule>
+    </Policy>
+    <Policy xmlns="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
+            xmlns:xacml-context="urn:oasis:names:tc:xacml:2.0:context:schema:os" 
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+            xsi:schemaLocation="urn:oasis:names:tc:xacml:2.0:policy:schema:os http://docs.oasis-open.org/xacml/access_control-xacml-2.0-policy-schema-os.xsd" 
+            xmlns:md="urn:mdc:xacml" 
+            PolicyId="policy:9" 
+            RuleCombiningAlgId="urn:oasis:names:tc:xacml:1.0:rule-combining-algorithm:deny-overrides">
+      <Description>Default permit.</Description>
+      <Target></Target>
+      <Rule RuleId="rule:6" Effect="Permit">
+        <Description>This is just the single rule for the above policy.</Description>
+      </Rule>
+    </Policy>
+  </PolicySet>
+  <!-- end Unregistered Receivers -->
+  <!-- begin Registered Private Receivers -->
+  <PolicySet  xmlns="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+              xsi:schemaLocation="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
+              PolicySetId="policyset:5" 
+              PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:permit-overrides">
+	  <Description>The policies for Registered Private Receivers</Description>
+    <Target>
+      <Subjects>
+	      <Subject>
+		      <SubjectMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+		        <AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">registered_private_receiver</AttributeValue>
+			      <SubjectAttributeDesignator AttributeId="subject:role" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+		      </SubjectMatch>
+	      </Subject>
+      </Subjects>
+    </Target>
+	  <Policy xmlns="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
+            xmlns:xacml-context="urn:oasis:names:tc:xacml:2.0:context:schema:os" 
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+            xsi:schemaLocation="urn:oasis:names:tc:xacml:2.0:policy:schema:os http://docs.oasis-open.org/xacml/access_control-xacml-2.0-policy-schema-os.xsd" 
+            xmlns:md="urn:mdc:xacml" 
+            PolicyId="policy:10" 
+            RuleCombiningAlgId="urn:oasis:names:tc:xacml:1.0:rule-combining-algorithm:deny-overrides">
+	    <Description>A Registered Private Receiver can only view documents</Description>
+      <Target></Target>
+	    <Rule RuleId="rule:1" Effect="Deny">
+		    <Description>This is just the single rule for the above policy.</Description>
+        <Target></Target>
+		    <Condition>
+		      <Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:not">
+		        <Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:and">
+			        <Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+			          <AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">view</AttributeValue>
+                <Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:string-one-and-only">
+				          <ActionAttributeDesignator AttributeId="action:id" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+                </Apply>
+			        </Apply>
+			        <Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+			          <AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">document</AttributeValue>
+                <Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:string-one-and-only">
+					       <ResourceAttributeDesignator AttributeId="object:type" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+                </Apply>
+			        </Apply>
+	          </Apply>
+	        </Apply>
+		    </Condition>
+	    </Rule>
+    </Policy>
+    <PolicySet  xmlns="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
+                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+                xsi:schemaLocation="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
+                PolicySetId="policyset:6" 
+                PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:permit-overrides">
+	    <Description>The three reasons for a permit: own document, delegated document or delegated all documents.</Description>
+      <Target>
+	      <Actions>
+		      <Action>
+			      <ActionMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+			        <AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">view</AttributeValue>
+				      <ActionAttributeDesignator AttributeId="action:id" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+			      </ActionMatch>
+		      </Action>
+	      </Actions>
+      </Target>
+	    <Policy xmlns="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
+              xmlns:xacml-context="urn:oasis:names:tc:xacml:2.0:context:schema:os" 
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+              xsi:schemaLocation="urn:oasis:names:tc:xacml:2.0:policy:schema:os http://docs.oasis-open.org/xacml/access_control-xacml-2.0-policy-schema-os.xsd" 
+              xmlns:md="urn:mdc:xacml" 
+              PolicyId="policy:11" 
+              RuleCombiningAlgId="urn:oasis:names:tc:xacml:1.0:rule-combining-algorithm:deny-overrides">
+	      <Description>A Registered Private Receiver can view documents which he/she received</Description>
+        <Target></Target>
+	      <Rule RuleId="rule:1" Effect="Permit">
+		      <Description>This is just the single rule for the above policy.</Description>
+          <Target></Target>
+		      <Condition>
+            <Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+              <Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:string-one-and-only">
+                <ResourceAttributeDesignator AttributeId="object:destination" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+              </Apply>
+              <Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:string-one-and-only">
+                <SubjectAttributeDesignator AttributeId="subject:id" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+              </Apply>
+            </Apply>       
+		      </Condition>
+	      </Rule>
+      </Policy>
+	    <Policy xmlns="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
+              xmlns:xacml-context="urn:oasis:names:tc:xacml:2.0:context:schema:os" 
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+              xsi:schemaLocation="urn:oasis:names:tc:xacml:2.0:policy:schema:os http://docs.oasis-open.org/xacml/access_control-xacml-2.0-policy-schema-os.xsd" 
+              xmlns:md="urn:mdc:xacml" 
+              PolicyId="policy:12" 
+              RuleCombiningAlgId="urn:oasis:names:tc:xacml:1.0:rule-combining-algorithm:deny-overrides">
+	      <Description>A Registered Private Receiver can view documents which belong to another Registered Receiver which has allowed him/her to read this specific document.</Description>
+        <Target></Target>
+	      <Rule RuleId="rule:1" Effect="Permit">
+		      <Description>This is just the single rule for the above policy.</Description>
+		      <Condition>
+            <Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:string-is-in">
+              <Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:string-one-and-only">
+                <SubjectAttributeDesignator AttributeId="subject:id" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+              </Apply>
+              <ResourceAttributeDesignator AttributeId="object:delegated_view" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+            </Apply>       
+		      </Condition>
+	      </Rule>
+      </Policy>
+	    <Policy xmlns="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
+              xmlns:xacml-context="urn:oasis:names:tc:xacml:2.0:context:schema:os" 
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+              xsi:schemaLocation="urn:oasis:names:tc:xacml:2.0:policy:schema:os http://docs.oasis-open.org/xacml/access_control-xacml-2.0-policy-schema-os.xsd" 
+              xmlns:md="urn:mdc:xacml" 
+              PolicyId="policy:13" 
+              RuleCombiningAlgId="urn:oasis:names:tc:xacml:1.0:rule-combining-algorithm:deny-overrides">
+	      <Description>A Registered Private Receiver can view documents belonging to another Registered Private Receiver which has allowed him/her to read all his/her documents.</Description>
+        <Target></Target>
+	      <Rule RuleId="rule:1" Effect="Permit">
+		      <Description>This is just the single rule for the above policy.</Description>
+		      <Condition>
+            <Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:string-is-in">
+              <Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:string-one-and-only">
+                <ResourceAttributeDesignator AttributeId="object:destination" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+              </Apply>
+              <SubjectAttributeDesignator AttributeId="subject:delegated_view_from" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+            </Apply>       
+		      </Condition>
+	      </Rule>
+      </Policy>
+    </PolicySet>
+    <Policy xmlns="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
+            xmlns:xacml-context="urn:oasis:names:tc:xacml:2.0:context:schema:os" 
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+            xsi:schemaLocation="urn:oasis:names:tc:xacml:2.0:policy:schema:os http://docs.oasis-open.org/xacml/access_control-xacml-2.0-policy-schema-os.xsd" 
+            xmlns:md="urn:mdc:xacml" 
+            PolicyId="policy:14" 
+            RuleCombiningAlgId="urn:oasis:names:tc:xacml:1.0:rule-combining-algorithm:deny-overrides">
+      <Description>Default deny.</Description>
+      <Target></Target>
+      <Rule RuleId="rule:6" Effect="Deny">
+        <Description>This is just the single rule for the above policy.</Description>
+      </Rule>
+    </Policy>
+  </PolicySet>
+  <!-- end Registered Private Receivers -->
+  <!-- begin Tenants in general -->
+  <PolicySet  xmlns="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+              xsi:schemaLocation="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
+              PolicySetId="policyset:7" 
+              PolicyCombiningAlgId="urn:oasis:names:tc:xacml:1.0:policy-combining-algorithm:deny-overrides">
+	  <Description>The policies for tenants in general</Description>
+    <Target>
+      <Subjects>
+	      <Subject>
+		      <SubjectMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+		        <AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">tenant</AttributeValue>
+			      <SubjectAttributeDesignator AttributeId="subject:tenant-type" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+		      </SubjectMatch>
+	      </Subject>
+      </Subjects>
+    </Target>
+	  <Policy xmlns="urn:oasis:names:tc:xacml:2.0:policy:schema:os" 
+            xmlns:xacml-context="urn:oasis:names:tc:xacml:2.0:context:schema:os" 
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+            xsi:schemaLocation="urn:oasis:names:tc:xacml:2.0:policy:schema:os http://docs.oasis-open.org/xacml/access_control-xacml-2.0-policy-schema-os.xsd" 
+            xmlns:md="urn:mdc:xacml" 
+            PolicyId="policy:15" 
+            RuleCombiningAlgId="urn:oasis:names:tc:xacml:1.0:rule-combining-algorithm:deny-overrides">
+	    <Description>A member of a Tenant can only send a document if the credit of that tenant is sufficient.</Description>
+      <Target>
+	      <Actions>
+		      <Action>
+			      <ActionMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+			        <AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">send</AttributeValue>
+				      <ActionAttributeDesignator AttributeId="action:id" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+			      </ActionMatch>
+		      </Action>
+	      </Actions>
+	      <Resources>
+		      <Resource>
+			      <ResourceMatch MatchId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+			          <AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">document</AttributeValue>
+				      <ResourceAttributeDesignator AttributeId="object:type" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+			      </ResourceMatch>
+		      </Resource>
+	      </Resources>
+      </Target>
+	    <Rule RuleId="rule:1" Effect="Deny">
+		    <Description>This is just the single rule for the above policy.</Description>
+		    <Condition>
+            <Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:not">
+              	<Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+          		<Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:string-one-and-only">
+           			<SubjectAttributeDesignator AttributeId="subject:tenant_credit_sufficient" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+          		</Apply>
+			<AttributeValue DataType="http://www.w3.org/2001/XMLSchema#string">true</AttributeValue>
+		</Apply>
+		</Apply>
+		    </Condition>
+	    </Rule>
+    </Policy>
+	 <Policy xmlns="urn:oasis:names:tc:xacml:2.0:policy:schema:os"	xmlns:xacml-context="urn:oasis:names:tc:xacml:2.0:context:schema:os"
+		  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"	xsi:schemaLocation="urn:oasis:names:tc:xacml:2.0:policy:schema:os http://docs.oasis-open.org/xacml/access_control-xacml-2.0-policy-schema-os.xsd"
+		  xmlns:md="urn:mdc:xacml" PolicyId="policy:16:isolation"
+	RuleCombiningAlgId="urn:oasis:names:tc:xacml:1.0:rule-combining-algorithm:deny-overrides">
+	      <Description>Tenant isolation policy</Description>
+	      <Target>
+	      </Target>
+	      <Rule RuleId="rule:isolation:1" Effect="Deny">
+		  <Description>This is just the single rule for the above policy.</Description>
+		  <Condition>
+		<Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:not">
+		  <Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:string-equal">
+		    <Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:string-one-and-only">
+		      <ResourceAttributeDesignator AttributeId="object:owning-tenant" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+		    </Apply>
+		    <Apply FunctionId="urn:oasis:names:tc:xacml:1.0:function:string-one-and-only">
+		      <SubjectAttributeDesignator AttributeId="subject:tenant" DataType="http://www.w3.org/2001/XMLSchema#string"/>
+		    </Apply>
+		  </Apply>
+		</Apply>
+		  </Condition>
+	      </Rule>
+	  </Policy> 
+  </PolicySet>
+  <!-- end Tenants in general -->
+  <!-- begin specific Tenants -->
+  <!-- <PolicySetIdReference>puma:tenantpolicy:large-bank</PolicySetIdReference> -->
+  <!-- end specific Tenants -->
 </PolicySet>
+<!-- the end -->
