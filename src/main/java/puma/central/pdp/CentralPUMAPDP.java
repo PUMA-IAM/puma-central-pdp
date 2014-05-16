@@ -14,6 +14,7 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -59,6 +60,7 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import com.sun.xacml.EvaluationCtx;
 import com.sun.xacml.attr.StringAttribute;
 import com.sun.xacml.ctx.CachedAttribute;
+import com.sun.xacml.ctx.EncodedCachedAttribute;
 import com.sun.xacml.ctx.ResponseCtx;
 import com.sun.xacml.ctx.Result;
 
@@ -326,11 +328,29 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 	/**
 	 * Evaluate a request and return the result.
 	 */
-	public ResponseCtx evaluate(RequestType request,
-			List<CachedAttribute> cachedAttributes) throws RemoteException {
+	public ResponseCtx evaluate(List<EncodedCachedAttribute> encodedCachedAttributes) {
 		Timer.Context timerCtx = TimerFactory.getInstance().getTimer(getClass(), TIMER_NAME).time();
-		if (request == null)
+		
+		List<CachedAttribute> cachedAttributes = new LinkedList<CachedAttribute>();
+		for(EncodedCachedAttribute eca: encodedCachedAttributes) {
+			cachedAttributes.add(eca.toCachedAttribute());
+		}
+		
+		ResponseCtx response = evaluate(null, cachedAttributes);
+		
+		timerCtx.stop();
+		
+		return response;
+	}
+
+	/**
+	 * Evaluate a request and return the result.
+	 */
+	public ResponseCtx evaluate(RequestType request,
+			List<CachedAttribute> cachedAttributes) {
+		if (request == null) {
 			request = defaultRequest();
+		}
 		
 		if (isLoggingAll()) {
 			String log = "Received policy request for Central PUMA PDP. Cached attributes:\n";
@@ -352,8 +372,6 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote, CentralPUMAPDPMgmtR
 					+ result.getObligations().size() + ") ";
 		}
 		logger.info(msg);
-		
-		timerCtx.stop();
 		
 		return response;
 	}
