@@ -1,10 +1,8 @@
 package puma.central.pdp;
 
-import java.rmi.RemoteException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import oasis.names.tc.xacml._2_0.context.schema.os.ActionType;
@@ -93,13 +91,7 @@ public class CentralPUMAPEP implements PEP {
 		RequestType asRequest = asRequest(subject, object, action);
 		List<CachedAttribute> asCachedAttributes = asCachedAttributes(subject,
 				object, action, environment);
-		ResponseCtx response;
-		try {
-			response = pdp.evaluate(asRequest, asCachedAttributes);
-		} catch (RemoteException e) {
-			logger.log(Level.SEVERE, "Remote exception when contacting the CentralPUMAPEP. Returning deny.", e);
-			return false;
-		}
+		ResponseCtx response = pdp.evaluate(asRequest, asCachedAttributes);
 
 		if (!getStatus(response).equals("ok")) {
 			logger.severe("An error occured in the policy evaluation for "
