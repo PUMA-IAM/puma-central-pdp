@@ -116,7 +116,7 @@ public class CentralPUMAPEP implements PEP {
 						+ getIds(subject, object, action) + " was Permit");
 				return true;
 			case Result.DECISION_INDETERMINATE:
-				logger.warning("Authorization decision for "
+				logger.info("Authorization decision for "
 						+ getIds(subject, object, action)
 						+ " was Indeterminate");
 				return false;
