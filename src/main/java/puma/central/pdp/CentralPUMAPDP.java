@@ -383,12 +383,16 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote,
 	 */
 	public ResponseCtx evaluate(RequestType request,
 			List<CachedAttribute> cachedAttributes) {		
+		Timer.Context timerCtx = TimerFactory.getInstance()
+				.getTimer(getClass(), TIMER_NAME).time();
 		logAttributes(cachedAttributes, "RMI (comlete API)");
-		return _evaluate(request, cachedAttributes);
+		ResponseCtx response = _evaluate(request, cachedAttributes);
+		timerCtx.stop();
+		return response;
 	}
 	
 	private ResponseCtx _evaluate(RequestType request,
-			List<CachedAttribute> cachedAttributes) {			
+			List<CachedAttribute> cachedAttributes) {		
 		if (request == null) {
 			request = defaultRequest();
 		}
@@ -413,7 +417,7 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote,
 					+ result.getObligations().size() + ") ";
 		}
 		logger.info(msg);
-
+		
 		return response;
 	}
 
@@ -638,6 +642,8 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote,
 	@Override
 	public ResponseTypeP evaluateP(List<AttributeValueP> attributes)
 			throws TException {
+		Timer.Context timerCtx = TimerFactory.getInstance()
+				.getTimer(getClass(), TIMER_NAME).time();
 		List<CachedAttribute> cachedAttributes = new LinkedList<CachedAttribute>();
 		for(AttributeValueP avp: attributes) {
 			cachedAttributes.add(convert(avp));
@@ -646,7 +652,7 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote,
 		logAttributes(cachedAttributes, "Thrift");
 		
 		ResponseCtx response = this._evaluate(null, cachedAttributes);
-		
+		timerCtx.stop();
 		// FIXME incomplete implementation here
 		if(response.getResults().size() > 1) {
 			logger.severe("More than one result in the Thrift PDP server? Nb results: " + response.getResults().size() + " Returning Indeterminate");
@@ -671,6 +677,7 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote,
 		}
 		// we should never end up here
 		return ResponseTypeP.INDETERMINATE;
+		
 	}
 
 	private CachedAttribute convert(AttributeValueP attribute) {
