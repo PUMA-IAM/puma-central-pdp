@@ -49,7 +49,6 @@ import com.sun.xacml.finder.AttributeFinder;
 import com.sun.xacml.finder.AttributeFinderModule;
 import com.sun.xacml.finder.PolicyFinder;
 import com.sun.xacml.finder.PolicyFinderModule;
-import com.sun.xacml.remote.RemotePolicyEvaluator;
 import com.sun.xacml.support.finder.PolicyReader;
 
 /**
@@ -74,7 +73,7 @@ public class MultiPolicyPDP {
 	 * The remote policy evaluator does not have to be constructed for every policy request.
 	 * Store it in this variable.
 	 */
-	private RemotePolicyEvaluator remotePolicyEvaluator; 
+	// NOTE not used: private RemotePolicyEvaluator remotePolicyEvaluator; 
 	
 	/**
 	 * 
@@ -118,7 +117,7 @@ public class MultiPolicyPDP {
         attributeFinder.setModules(attributeModules);
         
         // Also set up the remote policy evaluator
-        remotePolicyEvaluator = new RemotePolicyEvaluator();
+        // NOTE not used: remotePolicyEvaluator = new RemotePolicyEvaluator();
 //        Set<RemotePolicyEvaluatorModule> remotePolicyEvaluatorModules = new HashSet<RemotePolicyEvaluatorModule>();
 //        remotePolicyEvaluatorModules.add(new TenantPolicyEvaluatorModule());
 //        remotePolicyEvaluator.setModules(remotePolicyEvaluatorModules);
