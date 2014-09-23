@@ -26,6 +26,7 @@ import puma.peputils.Action;
 import puma.peputils.Environment;
 import puma.peputils.PEP;
 import puma.peputils.Subject;
+import puma.peputils.attributes.Multiplicity;
 import puma.peputils.attributes.ObjectAttributeValue;
 import puma.peputils.attributes.SubjectAttributeValue;
 
@@ -79,11 +80,11 @@ public class OfflinePEPTest {
 		// example
 		// based on the current Session or some parameters in the request
 		Subject subject = new Subject("s123");
-		subject.addAttributeValue(new SubjectAttributeValue("tenant", "provider"));
+		subject.addAttributeValue(new SubjectAttributeValue("tenant", Multiplicity.GROUPED, "provider"));
 
 		puma.peputils.Object object = new puma.peputils.Object("o123");
-		object.addAttributeValue(new ObjectAttributeValue("type", "document"));
-		object.addAttributeValue(new ObjectAttributeValue("confidential", true));
+		object.addAttributeValue(new ObjectAttributeValue("type", Multiplicity.ATOMIC, "document"));
+		object.addAttributeValue(new ObjectAttributeValue("confidential", Multiplicity.ATOMIC, true));
 
 		Action action = new Action("view");
 
@@ -104,11 +105,11 @@ public class OfflinePEPTest {
 		// example
 		// based on the current Session or some parameters in the request
 		Subject subject = new Subject("maarten");
-		subject.addAttributeValue(new SubjectAttributeValue("tenant", "provider"));
-		subject.addAttributeValue(new SubjectAttributeValue("roles", "helpdesk"));
+		subject.addAttributeValue(new SubjectAttributeValue("tenant", Multiplicity.GROUPED, "provider"));
+		subject.addAttributeValue(new SubjectAttributeValue("roles", Multiplicity.GROUPED, "helpdesk"));
 
 		puma.peputils.Object object = new puma.peputils.Object("123");
-		object.addAttributeValue(new ObjectAttributeValue("type", "document_metadata"));
+		object.addAttributeValue(new ObjectAttributeValue("type", Multiplicity.ATOMIC, "document_metadata"));
 
 		Action action = new Action("view");
 
@@ -129,11 +130,11 @@ public class OfflinePEPTest {
 		// example
 		// based on the current Session or some parameters in the request
 		Subject subject = new Subject("maarten");
-		subject.addAttributeValue(new SubjectAttributeValue("tenant", "provider"));
-		subject.addAttributeValue(new SubjectAttributeValue("roles", "helpdesk"));
+		subject.addAttributeValue(new SubjectAttributeValue("tenant", Multiplicity.GROUPED, "provider"));
+		subject.addAttributeValue(new SubjectAttributeValue("roles", Multiplicity.GROUPED, "helpdesk"));
 
 		puma.peputils.Object object = new puma.peputils.Object("123");
-		object.addAttributeValue(new ObjectAttributeValue("type", "document_metadata"));
+		object.addAttributeValue(new ObjectAttributeValue("type", Multiplicity.ATOMIC, "document_metadata"));
 
 		Action action = new Action("update");
 
@@ -154,13 +155,13 @@ public class OfflinePEPTest {
 		// example
 		// based on the current Session or some parameters in the request
 		Subject subject = new Subject("maarten");
-		subject.addAttributeValue(new SubjectAttributeValue("tenant", "provider"));
-		subject.addAttributeValue(new SubjectAttributeValue("roles", "helpdesk"));
-		subject.addAttributeValue(new SubjectAttributeValue("assigned_tenants", "tenant1"));
+		subject.addAttributeValue(new SubjectAttributeValue("tenant", Multiplicity.GROUPED, "provider"));
+		subject.addAttributeValue(new SubjectAttributeValue("roles", Multiplicity.GROUPED, "helpdesk"));
+		subject.addAttributeValue(new SubjectAttributeValue("assigned_tenants", Multiplicity.GROUPED, "tenant1"));
 
 		puma.peputils.Object object = new puma.peputils.Object("123");
-		object.addAttributeValue(new ObjectAttributeValue("type", "document"));
-		object.addAttributeValue(new ObjectAttributeValue("owning_tenant", "tenant1"));
+		object.addAttributeValue(new ObjectAttributeValue("type", Multiplicity.ATOMIC, "document"));
+		object.addAttributeValue(new ObjectAttributeValue("owning_tenant", Multiplicity.ATOMIC, "tenant1"));
 
 		Action action = new Action("update");
 
@@ -181,25 +182,21 @@ public class OfflinePEPTest {
 		// example
 		// based on the current Session or some parameters in the request
 		Subject subject = new Subject("maarten");
-		subject.addAttributeValue(new SubjectAttributeValue("tenant", "provider"));
-		SubjectAttributeValue roles = new SubjectAttributeValue("roles");
+		subject.addAttributeValue(new SubjectAttributeValue("tenant", Multiplicity.GROUPED, "provider"));
+		SubjectAttributeValue roles = new SubjectAttributeValue("roles", Multiplicity.GROUPED);
 		roles.addValue("phd");
 		roles.addValue("imindsr");
 		subject.addAttributeValue(roles);
-		subject.addAttributeValue(new SubjectAttributeValue("departement",
-				"computer-science"));
-		subject.addAttributeValue(new SubjectAttributeValue("email",
-				"maarten.decat@cs.kuleuven.be"));
+		subject.addAttributeValue(new SubjectAttributeValue("departement", Multiplicity.ATOMIC, "computer-science"));
+		subject.addAttributeValue(new SubjectAttributeValue("email", Multiplicity.ATOMIC, "maarten.decat@cs.kuleuven.be"));
 
 		puma.peputils.Object object = new puma.peputils.Object("123");
-		object.addAttributeValue(new ObjectAttributeValue("type", "document"));
-		object.addAttributeValue(new ObjectAttributeValue("owning-tenant",
-				"KBC"));
-		object.addAttributeValue(new ObjectAttributeValue("sender", "jasper"));
-		ObjectAttributeValue destinations = new ObjectAttributeValue(
-				"destination", "bert@kbc-leasing.be");
+		object.addAttributeValue(new ObjectAttributeValue("type", Multiplicity.ATOMIC, "document"));
+		object.addAttributeValue(new ObjectAttributeValue("owning-tenant", Multiplicity.ATOMIC, "KBC"));
+		object.addAttributeValue(new ObjectAttributeValue("sender", Multiplicity.ATOMIC, "jasper"));
+		ObjectAttributeValue destinations = new ObjectAttributeValue("destination", Multiplicity.ATOMIC, "bert@kbc-leasing.be");
 		object.addAttributeValue(destinations);
-		object.addAttributeValue(new ObjectAttributeValue("confidential", true));
+		object.addAttributeValue(new ObjectAttributeValue("confidential", Multiplicity.ATOMIC, true));
 
 		Action action = new Action("view");
 
