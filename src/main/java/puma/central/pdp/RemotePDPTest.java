@@ -41,6 +41,8 @@ import org.apache.thrift.transport.TTransportException;
 import puma.rmi.pdp.CentralPUMAPDPRemote;
 import puma.thrift.pdp.AttributeValueP;
 import puma.thrift.pdp.DataTypeP;
+import puma.thrift.pdp.MultiplicityP;
+import puma.thrift.pdp.ObjectTypeP;
 import puma.thrift.pdp.RemotePDPService;
 import puma.thrift.pdp.ResponseTypeP;
 
@@ -176,6 +178,23 @@ public class RemotePDPTest {
 		}
 	}
 
+	private ObjectTypeP inferObjectType(CachedAttribute attr) {
+		if(attr.getType().contains("subject:"))
+			return ObjectTypeP.SUBJECT;
+		else if(attr.getType().contains("object:"))
+			return ObjectTypeP.RESOURCE;
+		else if(attr.getType().contains("resource:"))
+			return ObjectTypeP.RESOURCE;
+		else if(attr.getType().contains("action:"))
+			return ObjectTypeP.ACTION;
+		else if(attr.getType().contains("environment:"))
+			return ObjectTypeP.ENVIRONMENT;
+		else if(attr.getType().contains("env:"))
+			return ObjectTypeP.ENVIRONMENT;
+		else
+			throw new RuntimeException("Cannot infer whether subject/action/object/environment for cached attribute \"" + attr +"\"");
+	}
+	
 	/**
 	 * @return Duration in ms
 	 * @throws TException
@@ -187,8 +206,9 @@ public class RemotePDPTest {
 		List<AttributeValueP> values = new LinkedList<AttributeValueP>();
 		for (CachedAttribute ca : cachedAttributes) {
 			String type = ca.getType();
+			ObjectTypeP oType = inferObjectType(ca);
 			if (type.equals(StringAttribute.identifier)) {
-				AttributeValueP avp = new AttributeValueP(DataTypeP.STRING,
+				AttributeValueP avp = new AttributeValueP(DataTypeP.STRING, oType, MultiplicityP.GROUPED,
 						ca.getId());
 				for (StringAttribute av : (Collection<StringAttribute>) ca
 						.getValue().getValue()) {
@@ -196,7 +216,7 @@ public class RemotePDPTest {
 				}
 				values.add(avp);
 			} else if (type.equals(IntegerAttribute.identifier)) {
-				AttributeValueP avp = new AttributeValueP(DataTypeP.INTEGER,
+				AttributeValueP avp = new AttributeValueP(DataTypeP.INTEGER, oType, MultiplicityP.GROUPED,
 						ca.getId());
 				for (IntegerAttribute av : (Collection<IntegerAttribute>) ca
 						.getValue().getValue()) {
@@ -204,7 +224,7 @@ public class RemotePDPTest {
 				}
 				values.add(avp);
 			} else if (type.equals(BooleanAttribute.identifier)) {
-				AttributeValueP avp = new AttributeValueP(DataTypeP.BOOLEAN,
+				AttributeValueP avp = new AttributeValueP(DataTypeP.BOOLEAN, oType, MultiplicityP.GROUPED,
 						ca.getId());
 				for (BooleanAttribute av : (Collection<BooleanAttribute>) ca
 						.getValue().getValue()) {
@@ -212,7 +232,7 @@ public class RemotePDPTest {
 				}
 				values.add(avp);
 			} else if (type.equals(DateTimeAttribute.identifier)) {
-				AttributeValueP avp = new AttributeValueP(DataTypeP.DATETIME,
+				AttributeValueP avp = new AttributeValueP(DataTypeP.DATETIME, oType, MultiplicityP.GROUPED,
 						ca.getId());
 				for (DateTimeAttribute av : (Collection<DateTimeAttribute>) ca
 						.getValue().getValue()) {
