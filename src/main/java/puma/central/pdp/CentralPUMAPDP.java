@@ -342,7 +342,7 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote,
 		}
 		List<InputStream> policies = new ArrayList<InputStream>();
 		for (File file : files) {
-			if (file.isFile() && !file.getName().endsWith("~")) {
+			if (file.isFile() && file.getName().endsWith(".xml")) {
 				// can be a directory as well
 				try {
 					policies.add(new FileInputStream(file));
