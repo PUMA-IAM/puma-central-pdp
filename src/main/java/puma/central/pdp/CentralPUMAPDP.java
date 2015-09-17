@@ -28,9 +28,6 @@ import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.rmi.RemoteException;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
-import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -49,28 +46,11 @@ import oasis.names.tc.xacml._2_0.context.schema.os.RequestType;
 import oasis.names.tc.xacml._2_0.context.schema.os.ResourceType;
 import oasis.names.tc.xacml._2_0.context.schema.os.SubjectType;
 
-import org.apache.commons.cli.BasicParser;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.BasicConfigurator;
-import org.apache.thrift.TException;
-import org.apache.thrift.server.TServer;
-import org.apache.thrift.server.TThreadPoolServer;
-import org.apache.thrift.transport.TServerSocket;
-import org.apache.thrift.transport.TServerTransport;
-import org.apache.thrift.transport.TTransportException;
 
 import puma.central.pdp.util.PolicyAssembler;
-import puma.rmi.pdp.CentralPUMAPDPRemote;
-import puma.rmi.pdp.mgmt.CentralPUMAPDPMgmtRemote;
-import puma.thrift.pdp.AttributeValueP;
-import puma.thrift.pdp.DataTypeP;
-import puma.thrift.pdp.RemotePDPService;
-import puma.thrift.pdp.ResponseTypeP;
+import puma.rest.domain.DataType;
+import puma.rest.domain.ResponseType;
 import puma.util.timing.TimerFactory;
 
 import com.codahale.metrics.MetricFilter;
@@ -102,8 +82,7 @@ import com.sun.xacml.ctx.Result;
  * @author Maarten Decat
  * 
  */
-public class CentralPUMAPDP implements CentralPUMAPDPRemote,
-		CentralPUMAPDPMgmtRemote, RemotePDPService.Iface {
+public class CentralPUMAPDP {
 
 	private static final int THRIFT_PEP_PORT = 9090;
 
@@ -122,139 +101,37 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote,
 	private static final Logger logger = Logger.getLogger(CentralPUMAPDP.class
 			.getName());
 
-	public static void main(String[] args) {
-		// initialize log4j
-		BasicConfigurator.configure();
-		
-		CommandLineParser parser = new BasicParser();
-		Options options = new Options();
-		options.addOption("ph", "policy-home", true,
-				"The folder where to find the policy file given with the given policy id. "
-				+ "For default operation, this folder should contain the central PUMA policy (called " + CENTRAL_PUMA_POLICY_FILENAME + ")");
-		options.addOption("pid", "policy-id", true,
-				"The id of the policy to be evaluated on decision requests. Default value: " + GLOBAL_PUMA_POLICY_ID + ")");
-		options.addOption("s", "log-disabled", true, "Verbose mode (true/false)");
-		String policyHome = "";
-		String policyId = "";
-
-		// read command line
-		try {
-			CommandLine line = parser.parse(options, args);
-			if (line.hasOption("help")) {
-				HelpFormatter formatter = new HelpFormatter();
-				formatter.printHelp("Simple PDP Test", options);
-				return;
-			}
-			if (line.hasOption("policy-home")) {
-				policyHome = line.getOptionValue("policy-home");
-			} else {
-				logger.log(Level.WARNING, "Incorrect arguments given.");
-				return;
-			}
-			if (line.hasOption("log-disabled") && Boolean.parseBoolean(line.getOptionValue("log-disabled"))) {
-				logger.log(Level.INFO, "Now switching to silent mode");
-				LogManager.getLogManager().getLogger("").setLevel(Level.WARNING);
-				//LogManager.getLogManager().reset();
-			} 
-			if (line.hasOption("policy-id")) {
-				policyId = line.getOptionValue("policy-id");
-			} else {
-				logger.log(Level.INFO, "Using default policy id: " + GLOBAL_PUMA_POLICY_ID);
-				policyId = GLOBAL_PUMA_POLICY_ID;
-			}
-		} catch (ParseException e) {
-			logger.log(Level.WARNING, "Incorrect arguments given.", e);
-			return;
-		}
-		
-		
-		//
-		// STARTUP THE RMI SERVER
-		//		
-		// if (System.getSecurityManager() == null) {
-		// System.setSecurityManager(new SecurityManager());
-		// }
-		final CentralPUMAPDP pdp;
-		try {
-			pdp = new CentralPUMAPDP(policyHome, policyId);
-		} catch (IOException e) {
-			logger.log(Level.SEVERE, "FAILED to set up the CentralPUMAPDP. Quitting.", e);
-			return;
-		}
-
-		try {
-			Registry registry;
-			try {
-				registry = LocateRegistry.createRegistry(RMI_REGISITRY_PORT);
-				logger.info("Created new RMI registry");
-			} catch (RemoteException e) {
-				// MDC: I hope this means the registry already existed.
-				registry = LocateRegistry.getRegistry(RMI_REGISITRY_PORT);
-				logger.info("Reusing existing RMI registry");
-			}
-			CentralPUMAPDPRemote stub = (CentralPUMAPDPRemote) UnicastRemoteObject
-					.exportObject(pdp, 0);
-			registry.bind(CENTRAL_PUMA_PDP_RMI_NAME, stub);
-			logger.info("Central PUMA PDP up and running (available using RMI with name \"central-puma-pdp\" on RMI registry port " + RMI_REGISITRY_PORT + ")");
-			Thread.sleep(100); // MDC: vroeger eindigde de Thread om één of andere reden, dit lijkt te werken...
-		} catch(Exception e) {
-			logger.log(Level.SEVERE, "FAILED to set up PDP as RMI server", e);
-		}
-		
-		//
-		// STARTUP THE THRIFT PEP SERVER
-		//
-		//logger.log(Level.INFO, "Not setting up the Thrift server");
-		
-		// set up server
-//		PEPServer handler = new PEPServer(new CentralPUMAPEP(pdp));
-//		RemotePEPService.Processor<PEPServer> processor = new RemotePEPService.Processor<PEPServer>(handler);
-//		TServerTransport serverTransport;
-//		try {
-//			serverTransport = new TServerSocket(THRIFT_PEP_PORT);
-//		} catch (TTransportException e) {
-//			e.printStackTrace();
-//			return;
-//		}
-//		TServer server = new TSimpleServer(new TServer.Args(serverTransport).processor(processor));
-//		System.out.println("Setting up the Thrift PEP server on port " + THRIFT_PEP_PORT);
-//		server.serve();
-		//
-		// STARTUP THE THRIFT PEP SERVER
-		//
-		//logger.log(Level.INFO, "Not setting up the Thrift server");
-		
-		// set up server
-		// do this in another thread not to block the main thread
-		new Thread(new Runnable() {			
-			@Override
-			public void run() {
-				RemotePDPService.Processor<CentralPUMAPDP> pdpProcessor = new RemotePDPService.Processor<CentralPUMAPDP>(pdp);
-				TServerTransport pdpServerTransport;
-				try {
-					pdpServerTransport = new TServerSocket(THRIFT_PDP_PORT);
-				} catch (TTransportException e) {
-					e.printStackTrace();
-					return;
-				}
-				TServer pdpServer = new TThreadPoolServer(new TThreadPoolServer.Args(pdpServerTransport).processor(pdpProcessor));
-				logger.info("Setting up the Thrift PDP server on port " + THRIFT_PDP_PORT);
-				pdpServer.serve();
-			}
-		}).start();
-	}
 
 	private MultiPolicyPDP pdp;
 
-	public CentralPUMAPDP(String policyDir) throws IOException {
-		this(policyDir, null);
-	}
 
-	public CentralPUMAPDP(String policyDir, String policyId) throws IOException {
+	public CentralPUMAPDP(String policyDir) throws IOException {
 		status = "NOT INITIALIZED";
 		initializePDP(policyDir);
-		this.policyId = policyId;
+		this.policyId = GLOBAL_PUMA_POLICY_ID;
 	}
+	
+	private static CentralPUMAPDP instance = null;
+	
+	public static boolean initialize(String policyDir) {
+		if(instance == null) {
+			try {
+				instance = new CentralPUMAPDP(policyDir);
+				logger.log(Level.INFO, "CentralPUMAPDP succesfully initialized");
+				return true;
+			} catch (IOException e) {
+				logger.log(Level.SEVERE, "Exception during initialization!", e);
+				return false;
+			}
+		} else {
+			return false;
+		}
+	}
+	
+	public static CentralPUMAPDP getInstance() {
+		return instance;
+	}
+	
 
 	private String centralPUMAPolicyFilename;
 	private String globalPUMAPolicyFilename;
@@ -379,7 +256,7 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote,
 	/**
 	 * Evaluate a request and return the result.
 	 */
-	public ResponseCtx evaluate(
+	public ResponseCtx evaluateEncoded(
 			List<EncodedCachedAttribute> encodedCachedAttributes) {
 		Timer.Context timerCtx = TimerFactory.getInstance()
 				.getTimer(getClass(), TIMER_NAME).time();
@@ -498,12 +375,12 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote,
 	 * APPLICATION PDP MGMT
 	 ***********************/
 
-	@Override
+	
 	public String getStatus() {
 		return status;
 	}
 
-	@Override
+	
 	public void loadCentralPUMAPolicy(String policy) {
 		PrintWriter writer;
 		try {
@@ -527,7 +404,7 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote,
 		this.reload();
 	}
 
-	@Override
+	
 	public void loadTenantPolicy(String tenantIdentifier, String policy) {
 		// Write the tenant policy
 		try {
@@ -588,7 +465,7 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote,
 		return this.policyDir + tenantIdentifier + ".xml";
 	}
 
-	@Override
+	
 	public void reload() {
 		// just set up a new PDP
 		this.pdp = new MultiPolicyPDP(getPolicyStreams(policyDir));
@@ -596,7 +473,7 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote,
 		status = "OK";
 	}
 
-	@Override
+	
 	public String getCentralPUMAPolicy() {
 		try {
 			String str = FileUtils.readFileToString(new File(
@@ -609,12 +486,12 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote,
 		}
 	}
 
-	@Override
+	
 	public List<String> getIdentifiers() {
 		return this.identifiers;
 	}
 
-	@Override
+	
 	public String getMetrics() {
 		ObjectMapper mapper = new ObjectMapper();
 		ObjectWriter writer = mapper.writerWithDefaultPrettyPrinter();
@@ -630,8 +507,8 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote,
 
 	GraphiteReporter reporter = null;
 
-	@Override
-	public void resetMetrics() throws RemoteException {
+	
+	public void resetMetrics() {
 		TimerFactory.getInstance().resetAllTimers();
 
 		// connect metrics to the Graphite server
@@ -649,7 +526,7 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote,
 		reporter.start(10, TimeUnit.SECONDS);
 	}
 
-	@Override
+	
 	public boolean ping() throws RemoteException {
 		return true;
 	}
@@ -658,13 +535,12 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote,
 	 * FOR THE THRIFT PDP SERVER
 	 */
 
-	@Override
-	public ResponseTypeP evaluateP(List<AttributeValueP> attributes)
-			throws TException {
+	
+	public ResponseType evaluate(List<puma.rest.domain.AttributeValue> attributes) {
 		Timer.Context timerCtx = TimerFactory.getInstance()
 				.getTimer(getClass(), TIMER_NAME).time();
 		List<CachedAttribute> cachedAttributes = new LinkedList<CachedAttribute>();
-		for(AttributeValueP avp: attributes) {
+		for(puma.rest.domain.AttributeValue avp: attributes) {
 			cachedAttributes.add(convert(avp));
 		}
 		
@@ -675,32 +551,32 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote,
 		// FIXME incomplete implementation here
 		if(response.getResults().size() > 1) {
 			logger.severe("More than one result in the Thrift PDP server? Nb results: " + response.getResults().size() + " Returning Indeterminate");
-			return ResponseTypeP.INDETERMINATE;
+			return ResponseType.INDETERMINATE;
 		} 
 		if(response.getResults().size() == 0) {
 			logger.severe("No results in the Thrift PDP server? Nb results: " + response.getResults().size() + " Returning Indeterminate");
-			return ResponseTypeP.INDETERMINATE;
+			return ResponseType.INDETERMINATE;
 		} 
 		for(Object result: response.getResults()) {
 			// there is only one result, just return on the first one
 			Result r = (Result) result;
 			if(r.getDecision() == Result.DECISION_DENY) {
-				return ResponseTypeP.DENY;
+				return ResponseType.DENY;
 			} else if(r.getDecision() == Result.DECISION_PERMIT) {
-				return ResponseTypeP.PERMIT;
+				return ResponseType.PERMIT;
 			} else if(r.getDecision() == Result.DECISION_NOT_APPLICABLE) {
-				return ResponseTypeP.NOT_APPLICABLE;
+				return ResponseType.NOT_APPLICABLE;
 			} else {
-				return ResponseTypeP.INDETERMINATE;
+				return ResponseType.INDETERMINATE;
 			} 
 		}
 		// we should never end up here
-		return ResponseTypeP.INDETERMINATE;
+		return ResponseType.INDETERMINATE;
 		
 	}
 
-	private CachedAttribute convert(AttributeValueP attribute) {
-		if (attribute.getDataType() == DataTypeP.STRING) {
+	private CachedAttribute convert(puma.rest.domain.AttributeValue attribute) {
+		if (attribute.getDataType() == DataType.STRING) {
 			List<AttributeValue> values = new ArrayList<AttributeValue>();
 			for (String s : attribute.getStringValues()) {
 				values.add(new StringAttribute(s));
@@ -708,7 +584,7 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote,
 			return new CachedAttribute(StringAttribute.identifier,
 					attribute.getId(), new BagAttribute(
 							StringAttribute.identifierURI, values));
-		} else if (attribute.getDataType() == DataTypeP.INTEGER) {
+		} else if (attribute.getDataType() == DataType.INTEGER) {
 			List<AttributeValue> values = new ArrayList<AttributeValue>();
 			for (Integer i : attribute.getIntValues()) {
 				values.add(new IntegerAttribute(i));
@@ -716,7 +592,7 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote,
 			return new CachedAttribute(IntegerAttribute.identifier,
 					attribute.getId(), new BagAttribute(
 							IntegerAttribute.identifierURI, values));
-		} else if (attribute.getDataType() == DataTypeP.BOOLEAN) {
+		} else if (attribute.getDataType() == DataType.BOOLEAN) {
 			List<AttributeValue> values = new ArrayList<AttributeValue>();
 			for (Boolean b : attribute.getBooleanValues()) {
 				values.add(BooleanAttribute.getInstance(b));
@@ -724,7 +600,7 @@ public class CentralPUMAPDP implements CentralPUMAPDPRemote,
 			return new CachedAttribute(BooleanAttribute.identifier,
 					attribute.getId(), new BagAttribute(
 							BooleanAttribute.identifierURI, values));
-		} else if (attribute.getDataType() == DataTypeP.DATETIME) {
+		} else if (attribute.getDataType() == DataType.DATETIME) {
 			List<AttributeValue> values = new ArrayList<AttributeValue>();
 			for (Long l : attribute.getDatetimeValues()) {
 				values.add(new DateTimeAttribute(new Date(l)));
